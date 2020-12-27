@@ -15,21 +15,18 @@ def in_extension_list(filename, ext_list):
 
     return False
 
-def get_fs_filelist(topdir_list, ext_list):
+def get_topdir_filelist(topdir, ext_list):
     new_filelist = []
 
-    for topdirpath in topdir_list:
-        for dirpath, dirnames, filenames in os.walk(topdirpath):
-            for filename in filenames:
-                if not in_extension_list(filename, ext_list):
-                    continue
+    for dirpath, dirnames, filenames in os.walk(topdir):
+        for filename in filenames:
+            if not in_extension_list(filename, ext_list):
+                continue
 
-                filepath = os.path.join(dirpath, filename)
-                relpath = os.path.relpath(filepath, topdirpath)
-                new_filelist.append(relpath)
+            filepath = os.path.join(dirpath, filename)
+            abspath = os.path.abspath(filepath)
+            new_filelist.append(abspath)
 
-                logging.debug('file found: %s' % relpath)
-
-    new_filelist.sort()
+            logging.debug('file found: %s' % abspath)
 
     return new_filelist
