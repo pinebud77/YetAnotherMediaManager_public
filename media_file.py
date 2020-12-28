@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 import os
 import os.path
+import logging
+from moviepy.editor import *
+
+from thumbnail_gen import create_thumbnails
+import database_utils as db_utils
 
 
 class TopDirectory:
@@ -39,6 +44,7 @@ class MediaFile:
         self.catetory = None
         self.tag_list = None
         self.actor_list = None
+        self.thumbnails = None
 
     def load_dbtuple(self, t):
         self.id = t[0]
@@ -55,10 +61,29 @@ class MediaFile:
     def abspath(self):
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
 
+    def load_thumbnails(self, create=True):
+        logging.info('loading thumbnail for %s' % self.abspath())
+        self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
+        if self.thumbnails:
+            return
+        if not create:
+            return
+        self.thumbnails = create_thumbnails(self.abspath())
+        db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
+
+    def get_coverjpg(self):
+        if not self.thumbnails:
+            return None
+        count = len(self.thumbnails)
+        count = int (count * 0.7)
+        return self.thumbnails[count][1]
+
     def loadinfo(self):
         file_stats = os.stat(self.abspath())
         self.size = file_stats.st_size
         self.time = file_stats.st_atime
+        clip = VideoFileClip(self.abspath)
+        self.duration = clip.duration
 
     def add_tag(self, tag):
         pass

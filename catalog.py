@@ -13,6 +13,7 @@ MAJOR_VERSION = 0
 MINOR_VERSION = 1
 DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv']
 
+logging.basicConfig(level=logging.DEBUG)
 
 def get_abspath(topdir):
     return topdir.abspath
@@ -62,6 +63,9 @@ class Catalog(list):
             td.load_dbtuple(db_td)
             self.topdir_list.append(td)
 
+        # create thumbnail table if does not exists
+        db_utils.create_thumbnail_table(self.db_conn)
+
         # create or load file table
         db_utils.create_file_table(self.db_conn)
         db_file_list = db_utils.get_file_list(self.db_conn)
@@ -69,6 +73,7 @@ class Catalog(list):
             topdir = self.get_topdir_from_id(df[1])
             mf = media_file.MediaFile(self, topdir, df[2], df[3])
             mf.load_dbtuple(df)
+            mf.load_thumbnails(create=False)
             self.append(mf)
 
     def get_topdir_from_id(self, topdir_id):
@@ -126,7 +131,7 @@ class Catalog(list):
         if ob_i < len(self.topdir_list):
             only_ob_list.extend(self.topdir_list[ob_i:])
         if db_i < len(db_list):
-            only_db_list.extend(db_list[db_i])
+            only_db_list.extend(db_list[db_i:])
 
         for only_ob in only_ob_list:
             db_utils.add_topdir(self.db_conn, only_ob)
@@ -134,11 +139,9 @@ class Catalog(list):
         for only_db in only_db_list:
             db_utils.del_topdir(self.db_conn, only_db[1])
 
-    def sync_files(self):
+    def sync_files(self, percent_cb=None, file_cb=None):
         add_db_list = []
         del_db_list = []
-
-        print(self.topdir_list)
 
         for topdir in self.topdir_list:
             logging.info('processing %s' % topdir)
@@ -187,21 +190,35 @@ class Catalog(list):
             for onlydb in only_db_list:
                 del_db_list.append(onlydb)
 
-        modified = False
+        total = len(add_db_list)
+        prev_percent = 0
+        count = 0
         for mf in add_db_list:
+            logging.info('adding: %s' % mf.abspath())
             db_utils.add_file_nocommit(self.db_conn, mf)
+            self.db_conn.commit()
+            db_utils.set_file_id(self.db_conn, mf)
+            mf.load_thumbnails(create=True)
             self.append(mf)
-            modified = True
+
+            if file_cb is not None:
+                file_cb(mf)
+
+            if percent_cb is not None:
+                count += 1
+                percent = int(count / total * 100)
+                if percent != prev_percent:
+                    percent_cb(percent)
+                    prev_percent = percent
+
         for mf in del_db_list:
             db_utils.del_file_nocommit(self.db_conn, mf)
             self.remove(mf)
-            modified = True
-        if modified:
             self.db_conn.commit()
 
-    def sync_database(self):
+    def sync_database(self, percent_cb=None, file_cb=None):
         self.sync_topdir()
-        self.sync_files()
+        self.sync_files(percent_cb=percent_cb, file_cb=file_cb)
 
     def load_database(self):
         pass
@@ -226,13 +243,17 @@ class Catalog(list):
         pass
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+def print_percent(percent):
+    print(percent)
 
-    cat = Catalog('C:\\Users\\pineb\\Desktop\\python\\test.db')
+def print_path(mf):
+    print(mf.abspath())
+
+if __name__ == '__main__':
+    cat = Catalog('test.db')
     cat.open_database()
     cat.add_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\gachip")
-    cat.add_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\heydouga")
-    cat.add_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\download")
-    cat.sync_database()
+    cat.del_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\heydouga")
+    cat.del_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\download")
+    cat.sync_database(percent_cb=print_percent, file_cb=print_path)
     cat.close_database()

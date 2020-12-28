@@ -10,14 +10,14 @@ Features Planed
 * Video Stream image generation
 * Thumbnail generation
 * Selecting thumbnail from Video Stream images
-
+* tagging / Category
 
 Implementation details
 
-* GUI : ?
+* GUI : wxPython
 * sqlite3 : only solution for local DB?
-* where to store the catalog
 
 Dependencies
 
-* moviepy
+* moviepy library : pip install movipy
+* wxpython GUI library : pip install wxpython

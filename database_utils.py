@@ -149,6 +149,20 @@ def get_file_list(conn):
     return c.fetchall()
 
 
+sql_get_file_id = """SELECT id
+                     FROM file
+                     WHERE topdir_id=? and reldir=? and filename=?;
+                  """
+
+def set_file_id(conn, mf):
+    c = conn.cursor()
+    c.execute(sql_get_file_id, (mf.topdir.id, mf.reldir, mf.filename,))
+    rows = c.fetchall()
+    if not rows:
+        return
+    mf.id = rows[0][0]
+
+
 sql_add_file = """INSERT INTO file (topdir_id, reldir, filename, stars, size, time, lastplay, duration, comment)
                   VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
                """
@@ -166,3 +180,49 @@ sql_del_file = """DELETE FROM file
 def del_file_nocommit(conn, mf):
     c = conn.cursor()
     c.execute(sql_del_file, (mf.id,))
+
+
+sql_create_thumbnail_table = """CREATE TABLE IF NOT EXISTS thumbnail (
+                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    file_id INTEGER,
+                                    time INTEGER,
+                                    jpg BLOB,
+                                    CONSTRAINT fk_file_id
+                                        FOREIGN KEY (file_id)
+                                        REFERENCES file(id)
+                                        ON DELETE CASCADE
+                             );"""
+
+def create_thumbnail_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_thumbnail_table)
+    conn.commit()
+
+
+sql_add_thumbnail = """INSERT INTO thumbnail (file_id, time, jpg)
+                       VALUES(?, ?, ?);
+                    """
+
+def add_thumbnails(conn, file_id, thumb_list):
+    c = conn.cursor()
+    for thumb in thumb_list:
+        time = thumb[0]
+        jpg = thumb[1]
+        c.execute(sql_add_thumbnail, (file_id, time, jpg,))
+    conn.commit()
+
+
+sql_get_thumbnails = """SELECT time, jpg
+                        FROM thumbnail
+                        WHERE file_id=?;
+                     """
+
+def get_first_element(arr):
+    return arr[0]
+
+def get_thumbnails(conn, file_id):
+    c = conn.cursor()
+    c.execute(sql_get_thumbnails, (file_id,))
+    rows = c.fetchall()
+    rows.sort(key=get_first_element)
+    return rows
