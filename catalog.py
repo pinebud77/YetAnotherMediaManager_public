@@ -28,9 +28,9 @@ def get_rel_path(media_file):
 
 
 class Catalog(list):
-    def __init__(self, db_abspath, topdir_list=[], extension_list=DEFAULT_FILE_EXT):
+    def __init__(self, db_abspath, extension_list=DEFAULT_FILE_EXT):
         self.filepath = db_abspath
-        self.topdir_list = topdir_list
+        self.topdir_list = []
         self.db_conn = None
         self.extension_list = extension_list
 

@@ -2,8 +2,9 @@
 
 import sys
 import wx
+import io
 
-import filemanager.catalog.Catalog as Catalog
+from catalog import Catalog
 
 
 class MediaManager(wx.Frame):
@@ -38,12 +39,15 @@ class MediaManager(wx.Frame):
         hbox.Add(wx.Button(self, label='filter'), 0, flag=wx.EXPAND)
 
         files_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
-        files_ctrl.InsertColumn(0, 'thumbnail')
-        files_ctrl.InsertColumn(1, 'filename')
-        files_ctrl.InsertColumn(2, 'size')
-        files_ctrl.InsertColumn(3, 'duration')
-        files_ctrl.InsertColumn(4, 'path')
+        files_ctrl.InsertColumn(0, 'thumbnail', width=360)
+        files_ctrl.InsertColumn(1, 'filename', width=200)
+        files_ctrl.InsertColumn(2, 'size', width=100)
+        files_ctrl.InsertColumn(3, 'duration', width=100)
+        files_ctrl.InsertColumn(4, 'path', width=360)
         hbox.Add(files_ctrl, 1, flag=wx.ALL|wx.EXPAND)
+        self.files_ctrl = files_ctrl
+        self.image_list = wx.ImageList(360, 240)
+        self.files_ctrl.SetImageList(self.image_list, wx.IMAGE_LIST_SMALL)
 
         hbox.Add(wx.Button(self, label='tag'), 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
@@ -69,8 +73,35 @@ class MediaManager(wx.Frame):
 
             pathname = fileDialog.GetPath()
 
+            self.catalog = Catalog(db_abspath=pathname)
+            self.catalog.open_database()
+            self.catalog.sync_database()
+            self.files_ctrl.DeleteAllItems()
+            self.image_list.RemoveAll()
+            index = 0
+            for mf in self.catalog:
+                self.files_ctrl.InsertItem(index, str(mf.id))
+                self.files_ctrl.SetItem(index, 1, mf.filename)
+                self.files_ctrl.SetItem(index, 2, '%dMB' % int(mf.size/1024 / 1024))
+                if mf.duration:
+                    hours = int(mf.duration/360)
+                    minutes = int((mf.duration - hours * 60) / 360)
+                    seconds = mf.duration - hours * 360 - minutes * 60
+                else:
+                    hours = 0
+                    minutes = 0
+                    seconds = 0
+                self.files_ctrl.SetItem(index, 3, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
+                self.files_ctrl.SetItem(index, 4, mf.abspath())
 
+                jpg_bytes = mf.get_coverjpg()
+                if jpg_bytes:
+                    data_stream = io.BytesIO(jpg_bytes)
+                    bmp = wx.Bitmap(wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG))
+                    self.image_list.Add(bmp)
+                    self.files_ctrl.SetItemImage(index, index)
 
+                index += 1
 
     def OnEditCatalog(self, e):
         pass
