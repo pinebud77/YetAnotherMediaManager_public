@@ -17,3 +17,7 @@ Implementation details
 * GUI : ?
 * sqlite3 : only solution for local DB?
 * where to store the catalog
+
+Dependencies
+
+* moviepy
