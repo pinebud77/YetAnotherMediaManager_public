@@ -53,6 +53,7 @@ class MediaFile:
         self.tag_list = None
         self.actor_list = None
         self.thumbnails = None
+        self.cover = None
 
     def load_dbtuple(self, t):
         self.id = t[0]
@@ -116,11 +117,20 @@ class MediaFile:
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def get_coverjpg(self):
+        if self.cover:
+            return self.cover
         if not self.thumbnails:
             return None
         count = len(self.thumbnails)
         count = int (count * 0.7)
         return self.thumbnails[count][1]
+
+    def set_cover_id(self, sel):
+        if not self.thumbnails:
+            return
+        db_utils.del_cover(self.catalog.db_conn, self.id)
+        db_utils.add_cover(self.catalog.db_conn, self.id, self.thumbnails[sel][1])
+        self.cover = self.thumbnails[sel][1]
 
     def loadinfo(self):
         file_stats = os.stat(self.abspath())

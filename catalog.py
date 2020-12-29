@@ -77,6 +77,17 @@ class Catalog(list):
             mf.load_thumbnails(create=False)
             self.append(mf)
 
+        #load cover table
+        db_utils.create_cover_table(self.db_conn)
+        db_cover_list = db_utils.get_cover(self.db_conn)
+        for dc in db_cover_list:
+            file_id = dc[1]
+            jpg = dc[2]
+            for mf in self:
+                if mf.id == file_id:
+                    mf.cover = jpg
+                    break
+
     def get_topdir_from_id(self, topdir_id):
         for topdir in self.topdir_list:
             if topdir.id == topdir_id:
@@ -221,17 +232,30 @@ class Catalog(list):
     def reload_files(self):
         db_file_list = db_utils.get_file_list(self.db_conn)
 
-        for mf in self:
+        mf_i = 0
+        while True:
+            if mf_i == len(self):
+                break
+            mf = self[mf_i]
             if not mf.thumbnails:
                 mf.load_thumbnails(create=False)
             df_i = 0
-            for df in db_file_list:
+            found = False
+            while True:
+                if df_i == len(db_file_list):
+                    break
+                df = db_file_list[df_i]
                 topdir = self.get_topdir_from_id(df[1])
                 df_abs = os.path.join(topdir.abspath, df[2], df[3])
                 if mf.abspath() == df_abs:
                     del(db_file_list[df_i])
                     df_i -= 1
+                    found = True
                 df_i += 1
+            if not found:
+                del(self[mf_i])
+                mf_i -= 1
+            mf_i += 1
 
         for df in db_file_list:
             topdir = self.get_topdir_from_id(df[1])

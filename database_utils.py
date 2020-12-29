@@ -226,3 +226,47 @@ def get_thumbnails(conn, file_id):
     rows = c.fetchall()
     rows.sort(key=get_first_element)
     return rows
+
+
+sql_create_cover_table = """CREATE TABLE IF NOT EXISTS cover (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                file_id INTEGER UNIQUE,
+                                cover BLOB,
+                                CONSTRAINT fk_file_id
+                                    FOREIGN KEY (file_id)
+                                    REFERENCES file(id)
+                                    ON DELETE CASCADE
+                          );"""
+
+def create_cover_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_cover_table)
+    conn.commit()
+
+
+sql_del_cover = """DELETE FROM cover
+                   WHERE file_id=?;"""
+
+def del_cover(conn, file_id):
+    c = conn.cursor()
+    c.execute(sql_del_cover, (file_id,))
+    conn.commit()
+
+
+sql_add_cover = """INSERT INTO cover (file_id, cover)
+                   VALUES(?, ?);"""
+
+def add_cover(conn, file_id, jpg):
+    c = conn.cursor()
+    c.execute(sql_add_cover, (file_id, jpg,))
+    conn.commit()
+
+
+sql_get_cover = """SELECT *
+                   FROM cover"""
+
+def get_cover(conn):
+    c = conn.cursor()
+    c.execute(sql_get_cover)
+    return c.fetchall()
+

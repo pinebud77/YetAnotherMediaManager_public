@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import subprocess
 import sys
 import wx
@@ -14,12 +15,95 @@ MEDIUM_THUMBNAILS = 1
 SMALL_THUMBNAILS = 2
 DETAIL_THUMBNAILS = 3
 
-class FileListCtrl(wx.ListCtrl):
-    def __init__(self, parent):
-        wx.ListCtrl.__init__(self, parent, style=wx.LC_ICON |
-                                                 wx.LC_SINGLE_SEL |
-                                                 wx.BORDER_SUNKEN |
-                                                 wx.LC_AUTOARRANGE)
+
+class CatalogDialog(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        super(CatalogDialog, self).__init__(*args, **kwargs)
+
+        self.catPath = None
+        self.topdir_list = []
+
+        self.InitUI()
+
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        vbox.AddSpacer(5)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(wx.StaticText(self, label='Catalog File : ', size=(70, -1), style=wx.TE_RIGHT), 0)
+        self.catPath = wx.TextCtrl(self)
+        hbox.Add(self.catPath, 1, wx.EXPAND)
+        catButton = wx.Button(self, label='Set Path')
+        self.Bind(wx.EVT_BUTTON, self.OnCatButton, catButton)
+        hbox.Add(catButton, 0, wx.EXPAND)
+        vbox.Add(hbox, 0, wx.EXPAND)
+        vbox.AddSpacer(5)
+
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(wx.StaticText(self, label='Top Dirs : ', size=(70, -1), style=wx.TE_RIGHT), 0)
+        self.topList = wx.ListBox(self, style=wx.LB_SINGLE|wx.LB_SORT)
+        hbox.Add(self.topList, 1, wx.EXPAND)
+        ivbox = wx.BoxSizer(wx.VERTICAL)
+        addButton = wx.Button(self, label='Add')
+        delButton = wx.Button(self, label='Del')
+        self.Bind(wx.EVT_BUTTON, self.OnAddButton, addButton)
+        self.Bind(wx.EVT_BUTTON, self.OnDelButton, delButton)
+        ivbox.Add(addButton, 0)
+        ivbox.Add(delButton, 0)
+        hbox.Add(ivbox, 0, wx.EXPAND)
+        vbox.Add(hbox, 1, wx.EXPAND)
+        vbox.AddSpacer(5)
+
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.okButton = wx.Button(self, wx.ID_OK, label='OK')
+        self.okButton.Disable()
+        cancelButton = wx.Button(self, wx.ID_CANCEL, label='Cancel')
+        hbox.AddStretchSpacer()
+        hbox.Add(self.okButton, 0, flag=wx.RIGHT)
+        hbox.Add(cancelButton, 0, flag=wx.RIGHT)
+        vbox.Add(hbox, 0, wx.EXPAND)
+        vbox.AddSpacer(5)
+
+        self.SetSizer(vbox)
+        self.SetAutoLayout(True)
+
+    def OnCatButton(self, e):
+       with wx.FileDialog(self, "New Catalog File", wildcard='catalog files (*.nmcat)|*.nmcat',
+                           style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            pathname = fileDialog.GetPath()
+            self.catPath.SetLabelText(pathname)
+
+            if self.topList.GetCount() and self.catPath.GetLabelText():
+                self.okButton.Enable()
+            else:
+                self.okButton.Disable()
+
+    def OnAddButton(self, e):
+        with wx.DirDialog(self, "Add Top Directory", style=wx.DD_DEFAULT_STYLE|wx.DD_DIR_MUST_EXIST) as dirDialog:
+            if dirDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            pathname = dirDialog.GetPath()
+            for n in range(0, self.topList.GetCount()):
+                if os.path.abspath(pathname) == os.path.abspath(self.topList.GetString(n)):
+                    return
+            self.topList.Append(os.path.abspath(pathname))
+
+            if self.topList.GetCount() and self.catPath.GetLabelText():
+                self.okButton.Enable()
+            else:
+                self.okButton.Disable()
+
+    def OnDelButton(self, e):
+        sel = self.topList.GetSelection()
+        if sel >= 0 and sel < self.topList.GetCount():
+            self.topList.Delete(sel)
+        if self.topList.GetCount() and self.catPath.GetLabelText():
+            self.okButton.Enable()
+        else:
+            self.okButton.Disable()
+
 
 mm_global = None
 
@@ -28,16 +112,19 @@ def mm_sync_cb(newfile, percent):
     if newfile:
         mm_global.statusbar.SetStatusText('File Added: %s (%d%% synced)' % (newfile, percent))
     else:
-        mm_global.statusbar.SetStatusText('Catalog Synced Finished')
+        mm_global.statusbar.SetStatusText('Catalog Sync Finished')
     mm_global.db_updated = True
 
 def cat_thread_func(mm):
+    print('thread started')
     global mm_global
     mm_global = mm
     cat = Catalog(mm.catalog.filepath)
     cat.open_database()
     cat.sync_database(file_cb=mm_sync_cb)
     cat.close_database()
+    mm.cat_thread = None
+    print('thread finished')
 
 
 class MediaManager(wx.Frame):
@@ -50,6 +137,7 @@ class MediaManager(wx.Frame):
         self.mediafile_selected = None
         self.cat_thread = None
         self.db_updated = False
+        self.thumb_sel = None
 
         self.InitUI()
 
@@ -59,8 +147,8 @@ class MediaManager(wx.Frame):
         catNew = catMenu.Append(wx.ID_ANY, 'New Catalog', 'Create New Catalog')
         catOpen = catMenu.Append(wx.ID_ANY, 'Open Catalog', 'Open Existing Catalog')
         catEdit = catMenu.Append(wx.ID_ANY, 'Edit Catalog', 'Edit Opened Catalog')
-        catMenu.AppendSeparator()
         catSync = catMenu.Append(wx.ID_ANY, 'Sync Catalog files', 'Sync Opened Catalog files')
+        catClose = catMenu.Append(wx.ID_ANY, 'Close Catalog files', 'Close Opened Catalog files')
         catMenu.AppendSeparator()
         catExit = catMenu.Append(wx.ID_EXIT, 'Quit', 'Quit Application')
         menubar.Append(catMenu, '&Catalog')
@@ -69,6 +157,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnOpenCatalog, catOpen)
         self.Bind(wx.EVT_MENU, self.OnEditCatalog, catEdit)
         self.Bind(wx.EVT_MENU, self.OnSyncCatalog, catSync)
+        self.Bind(wx.EVT_MENU, self.OnCloseCatalog, catClose)
         self.Bind(wx.EVT_MENU, self.OnQuit, catExit)
 
         viewMenu = wx.Menu()
@@ -87,10 +176,22 @@ class MediaManager(wx.Frame):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
+        tb = wx.ToolBar(self, -1)
+        tbNew = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_NEW))
+        tbOpen = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN))
+        tbEdit = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE_AS))
+        tbClose = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_CLOSE))
+        tb.Realize()
+        self.Bind(wx.EVT_TOOL, self.OnNewCatalog, tbNew)
+        self.Bind(wx.EVT_TOOL, self.OnOpenCatalog, tbOpen)
+        self.Bind(wx.EVT_TOOL, self.OnEditCatalog, tbEdit)
+        self.Bind(wx.EVT_TOOL, self.OnCloseCatalog, tbClose)
+        vbox.Add(tb, 0, flag=wx.EXPAND)
+
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(wx.Button(self, label='filter'), 0, flag=wx.EXPAND)
 
-        files_ctrl = FileListCtrl(self)
+        files_ctrl = wx.ListCtrl(self, style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.BORDER_SUNKEN|wx.LC_AUTOARRANGE)
         files_ctrl.InsertColumn(0, 'thumbnail', width=360)
         files_ctrl.InsertColumn(1, 'filename', width=200)
         files_ctrl.InsertColumn(2, 'size', width=100)
@@ -101,6 +202,7 @@ class MediaManager(wx.Frame):
         self.image_list = wx.ImageList(360, 203)
         files_ctrl.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, files_ctrl)
+        #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, files_ctrl)
         self.files_ctrl = files_ctrl
 
         hbox.Add(wx.Button(self, label='tags'), 0, flag=wx.EXPAND)
@@ -111,28 +213,41 @@ class MediaManager(wx.Frame):
         thumbs_ctrl.SetImageList(self.thumbs_list, wx.IMAGE_LIST_NORMAL)
         vbox.Add(thumbs_ctrl, 0, wx.EXPAND)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnThumbSelect, thumbs_ctrl)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnThumbDClick, thumbs_ctrl)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnThumbRight, thumbs_ctrl)
         self.thumbs_ctrl = thumbs_ctrl
 
         self.db_timer = wx.Timer(self, 0)
         self.Bind(wx.EVT_TIMER, self.OnDbTimer)
 
-        self.SetSizer(vbox)
+        self.thumbRightMenu = wx.Menu()
+        menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set As Actor Image')
+        menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set As Cover Image')
+        self.Bind(wx.EVT_MENU, self.OnActor, menuActor)
+        self.Bind(wx.EVT_MENU, self.OnCover, menuCover)
 
+        self.SetSizer(vbox)
         self.SetAutoLayout(True)
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
 
         self.SetSize((720, 640))
-        self.SetTitle('New Media Manager')
+        self.SetTitle('Yet Another Media Manager')
         self.Centre()
+
+    def OnCloseCatalog(self, e):
+        if not self.catalog:
+            return
+        self.catalog.close_database()
+        self.catalog = None
 
     def OnDbTimer(self, e):
         if self.db_updated:
             self.catalog.reload_files()
             self.OnViewChange(self.view_type)
             self.db_updated = False
-        if self.cat_thread.is_alive():
+        if self.cat_thread and self.cat_thread.is_alive():
             self.db_timer.Start(500)
         else:
             self.db_updated = False
@@ -184,6 +299,7 @@ class MediaManager(wx.Frame):
         if not self.catalog:
             return
 
+        self.files_ctrl.Hide()
         if type == DETAIL_THUMBNAILS:
             self.files_ctrl.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
         else:
@@ -197,8 +313,8 @@ class MediaManager(wx.Frame):
                 self.files_ctrl.SetItem(index, 2, '%dMB' % int(mf.size/1024 / 1024))
                 if mf.duration:
                     hours = int(mf.duration/3600)
-                    minutes = int((mf.duration - hours * 60) / 360)
-                    seconds = mf.duration - hours * 360 - minutes * 60
+                    minutes = int((mf.duration - hours * 3600) / 60)
+                    seconds = mf.duration - hours * 3600 - minutes * 60
                 else:
                     hours = 0
                     minutes = 0
@@ -221,6 +337,7 @@ class MediaManager(wx.Frame):
 
             index += 1
 
+        self.files_ctrl.Show()
         self.select_mediafile(self.mediafile_selected)
         self.GetSizer().Layout()
         self.Update()
@@ -237,21 +354,38 @@ class MediaManager(wx.Frame):
     def OnViewList(self, e):
         self.OnViewChange(DETAIL_THUMBNAILS)
 
-    def OnThumbSelect(self, e):
-        sel = self.thumbs_ctrl.GetFirstSelected()
-        if sel < 0 or not self.mediafile_selected:
+    def OnActor(self, e):
+        pass
+
+    def OnCover(self, e):
+        if not self.thumb_sel:
             return
-        thumb = self.mediafile_selected.thumbnails[sel]
+        mf = self.mediafile_selected
+        mf.set_cover_id(self.thumb_sel)
+        self.OnViewChange(self.view_type)
+
+    def OnThumbSelect(self, e):
+        self.thumb_sel = self.thumbs_ctrl.GetFirstSelected()
+        if self.thumb_sel < 0 or not self.mediafile_selected:
+            return
+
+    def OnThumbDClick(self, e):
+        thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
         print(self.mediafile_selected.abspath())
         run_list = ('C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe',
                     '%s'%self.mediafile_selected.abspath(),
                     '/seek=%d' % thumb[0])
         subprocess.Popen(run_list)
 
+    def OnThumbRight(self, e):
+        self.thumb_item_clicked = e.GetText()
+        self.thumbs_ctrl.PopupMenu(self.thumbRightMenu, e.GetPoint())
+
     def OnFileSelect(self, e):
         sel = self.files_ctrl.GetFirstSelected()
         if sel < 0:
             return
+        self.thumbs_ctrl.Hide()
         self.thumbs_ctrl.DeleteAllItems()
         self.thumbs_list.RemoveAll()
         mf = self.catalog[sel]
@@ -262,8 +396,8 @@ class MediaManager(wx.Frame):
             jpg = tb[1]
 
             hours = int(time/3600)
-            minutes = int((time - hours * 60) / 60)
-            seconds = int(time - hours * 360 - minutes * 60)
+            minutes = int((time - hours * 3600) / 60)
+            seconds = int(time - hours * 3600 - minutes * 60)
             self.thumbs_ctrl.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
 
             data_stream = io.BytesIO(jpg)
@@ -274,9 +408,43 @@ class MediaManager(wx.Frame):
             self.thumbs_ctrl.SetItemImage(index, index)
 
             index += 1
+        self.thumbs_ctrl.Show()
 
     def OnNewCatalog(self, e):
-        pass
+        with CatalogDialog(self, title="New Catalog") as catDialog:
+            if catDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            abspath = os.path.abspath(catDialog.catPath.GetLabelText())
+            self.catalog = Catalog(db_abspath=abspath)
+            self.catalog.open_database()
+
+            for n in range(catDialog.topList.GetCount()):
+                self.catalog.add_topdir(catDialog.topList.GetString(n))
+
+            self.statusbar.SetStatusText('Start Scanning files...')
+            self.OnSyncCatalog(e)
+
+    def OnEditCatalog(self, e):
+        if not self.catalog:
+            return
+
+        with CatalogDialog(self, title='Modify Catalog') as catDialog:
+            catDialog.catPath.SetLabelText(self.catalog.filepath)
+            catDialog.catPath.Disable()
+
+            for topdir in self.catalog.topdir_list:
+                catDialog.topList.Append(topdir.abspath)
+
+            if catDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            self.catalog.topdir_list = []
+            for n in range(catDialog.topList.GetCount()):
+                self.catalog.add_topdir(catDialog.topList.GetString(n))
+
+            self.statusbar.SetStatusText('Start Scanning files...')
+            self.OnSyncCatalog(e)
 
     def OnOpenCatalog(self, e):
         with wx.FileDialog(self, "Open Catalog", wildcard='catalog files (*.nmcat)|*.nmcat',
@@ -287,11 +455,10 @@ class MediaManager(wx.Frame):
             pathname = fileDialog.GetPath()
             self.catalog = Catalog(db_abspath=pathname)
             self.catalog.open_database()
-            #self.catalog.sync_database()
             self.OnViewChange(self.view_type)
 
-    def OnEditCatalog(self, e):
-        pass
+            self.statusbar.SetStatusText('Start Scanning files...')
+            self.OnSyncCatalog(e)
 
     def OnSyncCatalog(self, e):
         if self.cat_thread:
@@ -300,7 +467,11 @@ class MediaManager(wx.Frame):
         self.cat_thread.start()
         self.db_timer.Start(500)
 
+    def OnFileRight(self, e):
+        pass
+
     def OnQuit(self, e):
+        self.thumbRightMenu.Destroy()
         self.catalog.kill_thread = True
         self.cat_thread.join()
         self.Close()
