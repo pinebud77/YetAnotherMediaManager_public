@@ -108,7 +108,6 @@ class MediaFile:
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
-        print(self.thumbnails)
         if not create:
             return
         self.thumbnails = self.create_thumbnails(self.abspath())

@@ -358,8 +358,6 @@ class MediaManager(wx.Frame):
         pass
 
     def OnCover(self, e):
-        if not self.thumb_sel:
-            return
         mf = self.mediafile_selected
         mf.set_cover_id(self.thumb_sel)
         self.OnViewChange(self.view_type)

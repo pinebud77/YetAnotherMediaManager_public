@@ -21,3 +21,6 @@ Dependencies
 
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
+
+current picture
+![current pic](https://github.com/pinebud/YetAnotherMediaManager_public/blob/main/yamm.png?raw=true)
