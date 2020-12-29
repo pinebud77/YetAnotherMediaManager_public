@@ -2,10 +2,18 @@
 import os
 import os.path
 import logging
+import io
+from PIL import Image
 from moviepy.editor import *
 
-from thumbnail_gen import create_thumbnails
 import database_utils as db_utils
+
+
+MIN_IMAGE_COUNT = 5
+MAX_IMAGE_COUNT = 40
+DEF_THUMBNAIL_WIDTH = 360
+DEF_THUMBNAIL_HEIGHT = 203
+DEF_STREAM_PERIOD = 90
 
 
 class TopDirectory:
@@ -58,6 +66,39 @@ class MediaFile:
         self.duration = t[8]
         self.comment = t[9]
 
+    def create_thumbnails(self, fpath, period=DEF_STREAM_PERIOD, width=DEF_THUMBNAIL_WIDTH, height=DEF_THUMBNAIL_HEIGHT):
+        try:
+            clip = VideoFileClip(fpath)
+        except Exception as e:
+            print(e)
+            return
+
+        if clip.duration < period * MIN_IMAGE_COUNT:
+            period = clip.duration / MIN_IMAGE_COUNT
+        if clip.duration > period * MAX_IMAGE_COUNT:
+            period = clip.duration / MAX_IMAGE_COUNT
+
+        duration = int(clip.duration)
+        if duration == 0:
+            duration = 1
+
+        period = int(period)
+        if period == 0:
+            period = 1
+
+        thumbnails = []
+        for time in range(0, duration, period):
+            frame = clip.get_frame(time)
+            p = Image.fromarray(frame)
+            p.thumbnail((width, height))
+
+            byte_arr = io.BytesIO()
+            p.save(byte_arr, format='JPEG')
+
+            thumbnails.append((time, byte_arr.getvalue()))
+
+        return thumbnails
+
     def abspath(self):
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
 
@@ -66,9 +107,12 @@ class MediaFile:
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
+        print(self.thumbnails)
         if not create:
             return
-        self.thumbnails = create_thumbnails(self.abspath())
+        self.thumbnails = self.create_thumbnails(self.abspath())
+        if not self.thumbnails:
+            return
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def get_coverjpg(self):
@@ -82,8 +126,12 @@ class MediaFile:
         file_stats = os.stat(self.abspath())
         self.size = file_stats.st_size
         self.time = file_stats.st_atime
-        clip = VideoFileClip(self.abspath)
-        self.duration = clip.duration
+        try:
+            clip = VideoFileClip(self.abspath())
+            self.duration = clip.duration
+        except Exception as e:
+            print(e)
+            return
 
     def add_tag(self, tag):
         pass

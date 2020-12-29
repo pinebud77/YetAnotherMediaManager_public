@@ -33,6 +33,7 @@ class Catalog(list):
         self.topdir_list = []
         self.db_conn = None
         self.extension_list = extension_list
+        self.kill_thread = False
 
     def open_database(self):
         try:
@@ -139,7 +140,7 @@ class Catalog(list):
         for only_db in only_db_list:
             db_utils.del_topdir(self.db_conn, only_db[1])
 
-    def sync_files(self, percent_cb=None, file_cb=None):
+    def sync_files(self, file_cb=None):
         add_db_list = []
         del_db_list = []
 
@@ -191,10 +192,11 @@ class Catalog(list):
                 del_db_list.append(onlydb)
 
         total = len(add_db_list)
-        prev_percent = 0
         count = 0
         for mf in add_db_list:
             logging.info('adding: %s' % mf.abspath())
+            if self.kill_thread:
+                return
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
@@ -202,23 +204,45 @@ class Catalog(list):
             self.append(mf)
 
             if file_cb is not None:
-                file_cb(mf)
-
-            if percent_cb is not None:
                 count += 1
                 percent = int(count / total * 100)
-                if percent != prev_percent:
-                    percent_cb(percent)
-                    prev_percent = percent
+                file_cb(mf, percent)
 
         for mf in del_db_list:
+            if self.kill_thread:
+                return
             db_utils.del_file_nocommit(self.db_conn, mf)
             self.remove(mf)
             self.db_conn.commit()
 
-    def sync_database(self, percent_cb=None, file_cb=None):
+        if file_cb is not None:
+            file_cb(None, 100)
+
+    def reload_files(self):
+        db_file_list = db_utils.get_file_list(self.db_conn)
+
+        for mf in self:
+            if not mf.thumbnails:
+                mf.load_thumbnails(create=False)
+            df_i = 0
+            for df in db_file_list:
+                topdir = self.get_topdir_from_id(df[1])
+                df_abs = os.path.join(topdir.abspath, df[2], df[3])
+                if mf.abspath() == df_abs:
+                    del(db_file_list[df_i])
+                    df_i -= 1
+                df_i += 1
+
+        for df in db_file_list:
+            topdir = self.get_topdir_from_id(df[1])
+            mf = media_file.MediaFile(self, topdir, df[2], df[3])
+            mf.load_dbtuple(df)
+            mf.load_thumbnails(create=False)
+            self.append(mf)
+
+    def sync_database(self, file_cb=None):
         self.sync_topdir()
-        self.sync_files(percent_cb=percent_cb, file_cb=file_cb)
+        self.sync_files(file_cb=file_cb)
 
     def load_database(self):
         pass
@@ -250,10 +274,9 @@ def print_path(mf):
     print(mf.abspath())
 
 if __name__ == '__main__':
-    cat = Catalog('test.db')
+    cat = Catalog('test.nmcat')
     cat.open_database()
-    cat.add_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\gachip")
-    cat.del_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\heydouga")
-    cat.del_topdir("\\\\192.168.25.25\\administrator\\tt\\.t\\Administrator\\Recycled\\download")
-    cat.sync_database(percent_cb=print_percent, file_cb=print_path)
+    cat.del_topdir('Z:\\video\\on_yourmark')
+    cat.del_topdir('Z:\\video\\NieA_7')
+    cat.sync_database(file_cb=print_path)
     cat.close_database()
