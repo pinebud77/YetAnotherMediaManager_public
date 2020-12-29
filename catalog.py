@@ -3,6 +3,7 @@ import os
 import os.path
 import logging
 import sqlite3
+import datetime
 
 import media_file
 import database_utils as db_utils
@@ -12,6 +13,27 @@ import file_utils as file_utils
 MAJOR_VERSION = 0
 MINOR_VERSION = 1
 DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv']
+
+FILTER_SORT_NONE = 0
+FILTER_SORT_FILENAME = 1
+FILTER_SORT_TIME = 2
+FILTER_SORT_LASTPLAY = 3
+FILTER_SORT_DURATION = 4
+
+def filter_sort_filename(mf):
+    return mf.filename
+
+def filter_sort_time(mf):
+    return mf.time
+
+def filter_sort_lastplay(mf):
+    if mf.lastplay:
+        return datetime.datetime.strptime(mf.lastplay, '%Y-%m-%d %H:%M:%S.%f')
+    else:
+        return datetime.datetime.min
+
+def filter_sort_duration(mf):
+    return mf.duration
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -88,6 +110,23 @@ class Catalog(list):
                     mf.cover = jpg
                     break
 
+    def filter(self, sort=FILTER_SORT_NONE, ascend=True, actors=[], tags=[], stars=None):
+        l = []
+        for mf in self:
+            l.append(mf)
+
+        if sort == FILTER_SORT_FILENAME:
+            l.sort(key=filter_sort_filename, reverse=(not ascend))
+        elif sort == FILTER_SORT_TIME:
+            l.sort(key=filter_sort_time, reverse=(not ascend))
+        elif sort == FILTER_SORT_LASTPLAY:
+            l.sort(key=filter_sort_lastplay, reverse=(not ascend))
+        elif sort == FILTER_SORT_DURATION:
+            l.sort(key=filter_sort_duration, reverse=(not ascend))
+
+        return l
+
+
     def get_topdir_from_id(self, topdir_id):
         for topdir in self.topdir_list:
             if topdir.id == topdir_id:
@@ -116,6 +155,7 @@ class Catalog(list):
             return
 
         self.topdir_list.remove(topdir)
+        print(self.topdir_list)
         self.sync_topdir()
 
     def sync_topdir(self):

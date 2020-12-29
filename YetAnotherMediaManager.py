@@ -6,8 +6,9 @@ import sys
 import wx
 import io
 import threading
+import datetime
 
-from catalog import Catalog
+from catalog import *
 
 
 LARGE_THUMBNAILS = 0
@@ -15,6 +16,119 @@ MEDIUM_THUMBNAILS = 1
 SMALL_THUMBNAILS = 2
 DETAIL_THUMBNAILS = 3
 
+
+class LeftPanel(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        super(LeftPanel, self).__init__(*args, **kwargs)
+
+        self.mm_windows = None
+        self.selected_actors = []
+        self.selected_tags = []
+
+        self.InitUI()
+
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        vbox.Add(wx.StaticText(self, label='Filters'), 0)
+
+        self.actorList = wx.ListCtrl(self, size=(300, -1))
+        vbox.Add(self.actorList, 1, wx.EXPAND)
+
+        self.tagList = wx.ListCtrl(self, size=(300, -1))
+        vbox.Add(self.tagList, 1, wx.EXPAND)
+
+        self.SetSizer(vbox)
+        self.SetAutoLayout(True)
+
+
+class RightPanel(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        super(RightPanel, self).__init__(*args, **kwargs)
+
+        self.mm_windows = None
+        self.media_file = None
+
+        self.InitUI()
+
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self.propertyList = wx.ListCtrl(self, size=(300, 145), style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_HRULES|wx.LC_VRULES)
+        self.propertyList.InsertColumn(0, 'Property', width=100)
+        self.propertyList.InsertColumn(1, 'Value', width=195)
+
+        self.propertyList.InsertItem(0, 'Filename')
+        self.propertyList.SetItem(0, 1, '')
+        self.propertyList.InsertItem(1, 'Path')
+        self.propertyList.SetItem(1, 1, '')
+        self.propertyList.InsertItem(2, 'Stars')
+        self.propertyList.SetItem(2, 1, '')
+        self.propertyList.InsertItem(3, 'Size')
+        self.propertyList.SetItem(3, 1, '')
+        self.propertyList.InsertItem(4, 'Duration')
+        self.propertyList.SetItem(4, 1, '')
+        self.propertyList.InsertItem(5, 'LastPlayed')
+        self.propertyList.SetItem(5, 1, '')
+        self.set_property()
+
+        vbox.Add(wx.StaticText(self, label='Property'), 0)
+
+        vbox.Add(self.propertyList)
+        vbox.AddSpacer(5)
+
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        ivbox = wx.BoxSizer(wx.VERTICAL)
+        ivbox.Add(wx.StaticText(self, label='Actors'), 0)
+        self.actorList = wx.ListCtrl(self, size=(150, -1))
+        ivbox.Add(self.actorList, 1, wx.EXPAND)
+        hbox.Add(ivbox, 1, wx.EXPAND)
+        ivbox = wx.BoxSizer(wx.VERTICAL)
+        ivbox.Add(wx.StaticText(self, label='Tags'), 0)
+        self.tagList = wx.ListCtrl(self, size=(150, -1))
+        ivbox.Add(self.tagList, 1, wx.EXPAND)
+        hbox.Add(ivbox, 1, wx.EXPAND)
+
+        vbox.Add(hbox, 1, wx.EXPAND)
+
+        self.SetSizer(vbox)
+        self.SetAutoLayout(True)
+
+    def set_property(self):
+        if not self.media_file:
+            return
+        self.propertyList.DeleteAllItems()
+        self.propertyList.InsertItem(0, 'Filename')
+        self.propertyList.SetItem(0, 1, self.media_file.filename)
+        self.propertyList.InsertItem(1, 'Path')
+        self.propertyList.SetItem(1, 1, self.media_file.abspath())
+        self.propertyList.InsertItem(2, 'Stars')
+        if self.media_file.stars:
+            self.propertyList.SetItem(2, 1, '%d' % self.media_file.stars)
+        else:
+            self.propertyList.SetItem(2, 1, '')
+
+        self.propertyList.InsertItem(3, 'Size')
+        self.propertyList.SetItem(3, 1, '%dMB' % (self.media_file.size // (1024 * 1024)))
+
+        self.propertyList.InsertItem(4, 'Duration')
+        if self.media_file.duration:
+            hours = self.media_file.duration // 3600
+            minutes = (self.media_file.duration - hours * 3600) // 60
+            seconds = int(self.media_file.duration) % 60
+            self.propertyList.SetItem(4, 1, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
+        else:
+            self.propertyList.SetItem(4, 1, 'no info')
+
+        self.propertyList.InsertItem(5, 'LastPlayed')
+        if self.media_file.lastplay:
+            self.propertyList.SetItem(5, 1, str(self.media_file.lastplay))
+        else:
+            self.propertyList.SetItem(5, 1, '')
+
+    def set_mediafile(self, mf):
+        self.media_file = mf
+        self.set_property()
 
 class CatalogDialog(wx.Dialog):
     def __init__(self, *args, **kwargs):
@@ -138,6 +252,9 @@ class MediaManager(wx.Frame):
         self.cat_thread = None
         self.db_updated = False
         self.thumb_sel = None
+        self.files = []
+        self.sort_method = FILTER_SORT_FILENAME
+        self.sort_ascend = True
 
         self.InitUI()
 
@@ -164,13 +281,13 @@ class MediaManager(wx.Frame):
         viewSmall = viewMenu.Append(wx.ID_ANY, 'Small Thumbnails')
         viewMedium = viewMenu.Append(wx.ID_ANY, 'Medium Thumbnails')
         viewLarge = viewMenu.Append(wx.ID_ANY, 'Large Thumbnails')
-        viewList = viewMenu.Append(wx.ID_ANY, 'Detailed View')
+        #viewList = viewMenu.Append(wx.ID_ANY, 'Detailed View')
         menubar.Append(viewMenu, '&View')
 
         self.Bind(wx.EVT_MENU, self.OnViewSmall, viewSmall)
         self.Bind(wx.EVT_MENU, self.OnViewMedium, viewMedium)
         self.Bind(wx.EVT_MENU, self.OnViewLarge, viewLarge)
-        self.Bind(wx.EVT_MENU, self.OnViewList, viewList)
+        #self.Bind(wx.EVT_MENU, self.OnViewList, viewList)
 
         self.SetMenuBar(menubar)
 
@@ -189,7 +306,28 @@ class MediaManager(wx.Frame):
         vbox.Add(tb, 0, flag=wx.EXPAND)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(wx.Button(self, label='filter'), 0, flag=wx.EXPAND)
+        self.leftPanel = LeftPanel(self, size=(300, -1))
+        hbox.Add(self.leftPanel, 0, flag=wx.EXPAND)
+
+        ivbox = wx.BoxSizer(wx.VERTICAL)
+
+        ihbox = wx.BoxSizer(wx.HORIZONTAL)
+        ihbox.AddStretchSpacer()
+        ihbox.Add(wx.StaticText(self, label='sort by '), 0)
+        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', )
+        self.sortChoice = wx.Choice(self, choices=sort_choices)
+        self.sortChoice.SetSelection(self.sort_method)
+        self.Bind(wx.EVT_CHOICE, self.OnSortChange, self.sortChoice)
+        ihbox.Add(self.sortChoice, 0)
+        ascend_choices = ('Ascend', 'Descend')
+        self.ascendChoice = wx.Choice(self, choices=ascend_choices)
+        if self.sort_ascend:
+            self.ascendChoice.SetSelection(0)
+        else:
+            self.ascendChoice.SetSelection(1)
+        self.Bind(wx.EVT_CHOICE, self.OnAscendChange, self.ascendChoice)
+        ihbox.Add(self.ascendChoice, 0)
+        ivbox.Add(ihbox, 0, wx.EXPAND)
 
         files_ctrl = wx.ListCtrl(self, style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.BORDER_SUNKEN|wx.LC_AUTOARRANGE)
         files_ctrl.InsertColumn(0, 'thumbnail', width=360)
@@ -198,14 +336,17 @@ class MediaManager(wx.Frame):
         files_ctrl.InsertColumn(3, 'duration', width=100)
         files_ctrl.InsertColumn(4, 'path', width=360)
         files_ctrl.SetAutoLayout(True)
-        hbox.Add(files_ctrl, 1, flag=wx.ALL|wx.EXPAND)
+        ivbox.Add(files_ctrl, 1, flag=wx.ALL|wx.EXPAND)
+        hbox.Add(ivbox, 1, wx.EXPAND)
+
         self.image_list = wx.ImageList(360, 203)
         files_ctrl.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, files_ctrl)
         #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, files_ctrl)
         self.files_ctrl = files_ctrl
 
-        hbox.Add(wx.Button(self, label='tags'), 0, flag=wx.EXPAND)
+        self.rightPanel = RightPanel(self, size=(300, -1))
+        hbox.Add(self.rightPanel, 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
 
         thumbs_ctrl = wx.ListCtrl(self, size=(240 * 50, 177),  style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_ALIGN_LEFT|wx.LC_AUTOARRANGE)
@@ -236,11 +377,23 @@ class MediaManager(wx.Frame):
         self.SetTitle('Yet Another Media Manager')
         self.Centre()
 
+    def OnSortChange(self, e):
+        self.sort_method = self.sortChoice.GetSelection()
+        self.OnViewChange(self.view_type)
+
+    def OnAscendChange(self, e):
+        if self.ascendChoice.GetSelection():
+            self.sort_ascend = False
+        else:
+            self.sort_ascend = True
+        self.OnViewChange(self.view_type)
+
     def OnCloseCatalog(self, e):
         if not self.catalog:
             return
         self.catalog.close_database()
         self.catalog = None
+        self.OnViewChange(self.view_type)
 
     def OnDbTimer(self, e):
         if self.db_updated:
@@ -272,7 +425,7 @@ class MediaManager(wx.Frame):
 
     def select_mediafile(self, mf):
         index = 0
-        for mf_i in self.catalog:
+        for mf_i in self.files:
             if mf == mf_i:
                 break
             index += 1
@@ -283,11 +436,7 @@ class MediaManager(wx.Frame):
 
     def OnViewChange(self, type):
         self.view_type = type
-        sel = self.files_ctrl.GetFirstSelected()
-        if sel >= 0 and sel < len(self.catalog):
-            self.mediafile_selected = self.catalog[sel]
         self.files_ctrl.DeleteAllItems()
-        self.thumbs_ctrl.DeleteAllItems()
         if type == SMALL_THUMBNAILS or type == DETAIL_THUMBNAILS:
             self.image_list = wx.ImageList(180, 101)
         elif type == MEDIUM_THUMBNAILS:
@@ -298,15 +447,18 @@ class MediaManager(wx.Frame):
 
         if not self.catalog:
             return
+        self.files = self.catalog.filter(sort=self.sort_method,
+                                         ascend=self.sort_ascend)
+        if not self.files:
+            return
 
-        self.files_ctrl.Hide()
         if type == DETAIL_THUMBNAILS:
             self.files_ctrl.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
         else:
             self.files_ctrl.SetWindowStyleFlag(wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
 
         index = 0
-        for mf in self.catalog:
+        for mf in self.files:
             if type == DETAIL_THUMBNAILS:
                 self.files_ctrl.InsertItem(index, str(mf.id))
                 self.files_ctrl.SetItem(index, 1, mf.filename)
@@ -337,7 +489,6 @@ class MediaManager(wx.Frame):
 
             index += 1
 
-        self.files_ctrl.Show()
         self.select_mediafile(self.mediafile_selected)
         self.GetSizer().Layout()
         self.Update()
@@ -374,6 +525,7 @@ class MediaManager(wx.Frame):
                     '%s'%self.mediafile_selected.abspath(),
                     '/seek=%d' % thumb[0])
         subprocess.Popen(run_list)
+        self.mediafile_selected.set_lastplayed(datetime.datetime.now())
 
     def OnThumbRight(self, e):
         self.thumb_item_clicked = e.GetText()
@@ -383,11 +535,13 @@ class MediaManager(wx.Frame):
         sel = self.files_ctrl.GetFirstSelected()
         if sel < 0:
             return
-        self.thumbs_ctrl.Hide()
-        self.thumbs_ctrl.DeleteAllItems()
-        self.thumbs_list.RemoveAll()
-        mf = self.catalog[sel]
-        self.mediafile_selected = mf
+        mf = self.files[sel]
+
+        if mf !=self.mediafile_selected:
+            self.thumbs_ctrl.DeleteAllItems()
+            self.thumbs_list.RemoveAll()
+            self.mediafile_selected = mf
+        self.rightPanel.set_mediafile(mf)
         index = 0
         for tb in mf.thumbnails:
             time = tb[0]
@@ -406,7 +560,6 @@ class MediaManager(wx.Frame):
             self.thumbs_ctrl.SetItemImage(index, index)
 
             index += 1
-        self.thumbs_ctrl.Show()
 
     def OnNewCatalog(self, e):
         with CatalogDialog(self, title="New Catalog") as catDialog:
@@ -425,6 +578,7 @@ class MediaManager(wx.Frame):
 
     def OnEditCatalog(self, e):
         if not self.catalog:
+            self.statusbar.SetStatusText('Open or Create Catalog first')
             return
 
         with CatalogDialog(self, title='Modify Catalog') as catDialog:
@@ -437,9 +591,30 @@ class MediaManager(wx.Frame):
             if catDialog.ShowModal() == wx.ID_CANCEL:
                 return
 
-            self.catalog.topdir_list = []
+            new_topdirs = []
             for n in range(catDialog.topList.GetCount()):
-                self.catalog.add_topdir(catDialog.topList.GetString(n))
+                new_topdirs.append(catDialog.topList.GetString(n))
+
+            for new_topdir in new_topdirs:
+                found = False
+                for topdir in self.catalog.topdir_list:
+                    if new_topdir == topdir.abspath:
+                        found = True
+                        break
+                if not found:
+                    self.catalog.add_topdir(new_topdir)
+
+            td_i = 0
+            while td_i < len(self.catalog.topdir_list):
+                topdir = self.catalog.topdir_list[td_i]
+                if not (topdir.abspath in new_topdirs):
+                    print('del')
+                    self.catalog.del_topdir(topdir.abspath)
+                    td_i -= 1
+                td_i += 1
+
+            print(new_topdirs)
+            print(self.catalog.topdir_list)
 
             self.statusbar.SetStatusText('Start Scanning files...')
             self.OnSyncCatalog(e)
@@ -471,7 +646,8 @@ class MediaManager(wx.Frame):
     def OnQuit(self, e):
         self.thumbRightMenu.Destroy()
         self.catalog.kill_thread = True
-        self.cat_thread.join()
+        if self.cat_thread:
+            self.cat_thread.join()
         self.Close()
 
 

@@ -1,5 +1,5 @@
-UMM Media Manager
-=================
+YA Media Manager
+================
 
 This is my personal Media file manager.
 

@@ -67,6 +67,10 @@ class MediaFile:
         self.duration = t[8]
         self.comment = t[9]
 
+    def set_lastplayed(self, dt):
+        self.lastplay = dt
+        db_utils.update_file(self.catalog.db_conn, self)
+
     def create_thumbnails(self, fpath, period=DEF_STREAM_PERIOD, width=DEF_THUMBNAIL_WIDTH, height=DEF_THUMBNAIL_HEIGHT):
         try:
             clip = VideoFileClip(fpath)
@@ -134,7 +138,7 @@ class MediaFile:
     def loadinfo(self):
         file_stats = os.stat(self.abspath())
         self.size = file_stats.st_size
-        self.time = file_stats.st_atime
+        self.time = file_stats.st_ctime
         try:
             clip = VideoFileClip(self.abspath())
             self.duration = clip.duration

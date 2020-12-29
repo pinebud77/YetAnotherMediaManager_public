@@ -148,6 +148,32 @@ def get_file_list(conn):
     c.execute(sql_get_file)
     return c.fetchall()
 
+sql_update_file = """UPDATE file
+                     SET topdir_id=?,
+                         reldir=?,
+                         filename=?,
+                         stars=?,
+                         size=?,
+                         time=?,
+                         lastplay=?,
+                         duration=?,
+                         comment=?
+                     WHERE id=?;"""
+
+def update_file(conn, mf):
+    c = conn.cursor()
+    c.execute(sql_update_file, (mf.topdir.id,
+                                mf.reldir,
+                                mf.filename,
+                                mf.stars,
+                                mf.size,
+                                mf.time,
+                                mf.lastplay,
+                                mf.duration,
+                                mf.comment,
+                                mf.id))
+    conn.commit()
+
 
 sql_get_file_id = """SELECT id
                      FROM file
