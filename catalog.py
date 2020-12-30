@@ -58,6 +58,7 @@ class Catalog(list):
     def __init__(self, db_abspath, extension_list=DEFAULT_FILE_EXT):
         self.filepath = db_abspath
         self.topdir_list = []
+        self.tag_list = []
         self.actor_list = []
         self.db_conn = None
         self.extension_list = extension_list
@@ -117,6 +118,16 @@ class Catalog(list):
             mf = self.get_file_from_id(db_actorfile[1])
             mf.actor_list.append(db_actorfile[0])
 
+        # create or load tag table
+        db_utils.create_tag_table(self.db_conn)
+        db_tag_list = db_utils.get_tag_list(self.db_conn)
+        for db_tag in db_tag_list:
+            tag = db_tag[0]
+            mf = self.get_file_from_id(db_tag[1])
+            mf.tag_list.append(tag)
+            if tag not in self.tag_list:
+                self.tag_list.append(tag)
+
         #load cover table
         db_utils.create_cover_table(self.db_conn)
         db_cover_list = db_utils.get_cover(self.db_conn)
@@ -132,8 +143,12 @@ class Catalog(list):
         if name in self.actor_list:
             return
         db_utils.add_actor(self.db_conn, name, picture)
-        print('in add_actor %s' % name)
         self.actor_list.append(name)
+
+    def add_tag(self, tag):
+        if tag in self.tag_list:
+            return
+        self.tag_list.append(tag)
 
     def get_file_from_id(self, file_id):
         for mf in self:
@@ -145,6 +160,32 @@ class Catalog(list):
         l = []
         for mf in self:
             l.append(mf)
+
+        if actors:
+            mf_i = 0
+            while mf_i < len(l):
+                mf = l[mf_i]
+                found = False
+                for actor in actors:
+                    if actor in mf.actor_list:
+                        found = True
+                if not found:
+                    del(l[mf_i])
+                else:
+                    mf_i += 1
+
+        if tags:
+            mf_i = 0
+            while mf_i < len(l):
+                mf = l[mf_i]
+                found = False
+                for tag in tags:
+                    if tag in mf.tag_list:
+                        found = True
+                if not found:
+                    del(l[mf_i])
+                else:
+                    mf_i += 1
 
         if sort == FILTER_SORT_FILENAME:
             l.sort(key=filter_sort_filename, reverse=(not ascend))

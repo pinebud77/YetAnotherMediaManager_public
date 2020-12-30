@@ -50,7 +50,7 @@ class MediaFile:
         self.comment = None
 
         self.catetory = None
-        self.tag_list = None
+        self.tag_list = []
         self.actor_list = []
         self.thumbnails = None
         self.cover = None
@@ -162,16 +162,28 @@ class MediaFile:
     def add_actor(self, name):
         if name in self.actor_list:
             return
-        if not (name in self.catalog.actor_list):
-            self.catalog.add_actor(name)
+        self.catalog.add_actor(name)
         db_utils.add_actorfile(self.catalog.db_conn, name, self.id)
         self.actor_list.append(name)
 
-    def add_tag(self, tag):
-        pass
+    def del_actor(self, name):
+        if not (name in self.actor_list):
+            return
+        db_utils.del_actorfile(self.catalog.db_conn, name, self.id)
+        self.actor_list.remove(name)
 
-    def remove_tag(self, tag):
-        pass
+    def add_tag(self, tag):
+        if tag in self.tag_list:
+            return
+        self.catalog.add_tag(tag)
+        db_utils.add_tag(self.catalog.db_conn, tag, self.id)
+        self.tag_list.append(tag)
+
+    def del_tag(self, tag):
+        if not (tag in self.tag_list):
+            return
+        db_utils.del_tag(self.catalog.db_conn, tag, self.id)
+        self.tag_list.remove(tag)
 
     def set_category(self, category):
         pass

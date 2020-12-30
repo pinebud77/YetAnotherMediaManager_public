@@ -372,11 +372,11 @@ def add_actorfile(conn, name, file_id):
 
 
 sql_del_actorfile = """DELETE FROM actorfile
-                       WHERE name=?, file_id=?;"""
+                       WHERE name=? AND file_id=?;"""
 
 def del_actorfile(conn, name, file_id):
     c = conn.cursor()
-    c.execute(sql_del_actorfile), (name, file_id,)
+    c.execute(sql_del_actorfile, (name, file_id,))
     conn.commit()
 
 
@@ -386,4 +386,45 @@ sql_get_actorfile = """SELECT name, file_id
 def get_actorfile_list(conn):
     c = conn.cursor()
     c.execute(sql_get_actorfile)
+    return c.fetchall()
+
+
+sql_create_tag_table = """CREATE TABLE IF NOT EXISTS tag(
+                                tag TEXT NOT NULL,
+                                file_id INTEGER NOT NULL,
+                                CONSTRAINT fk_file_id
+                                    FOREIGN KEY (file_id)
+                                    REFERENCES file(id)
+                                    ON DELETE CASCADE);"""
+
+def create_tag_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_tag_table)
+    conn.commit()
+
+
+sql_add_tag = """INSERT INTO tag (tag, file_id)
+                 VALUES(?, ?);"""
+
+def add_tag(conn, tag, file_id):
+    c = conn.cursor()
+    c.execute(sql_add_tag, (tag, file_id,))
+    conn.commit()
+
+
+sql_del_tag = """DELETE FROM tag
+                 WHERE tag=? AND file_id=?;"""
+
+def del_tag(conn, tag, file_id):
+    c = conn.cursor()
+    c.execute(sql_del_tag, (tag, file_id,))
+    conn.commit()
+
+
+sql_get_tag= """SELECT tag, file_id
+                FROM tag;"""
+
+def get_tag_list(conn):
+    c = conn.cursor()
+    c.execute(sql_get_tag)
     return c.fetchall()

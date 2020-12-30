@@ -21,32 +21,129 @@ class LeftPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         super(LeftPanel, self).__init__(*args, **kwargs)
 
-        self.mm_windows = None
-        self.selected_actors = []
-        self.selected_tags = []
+        self.mm_window = None
+
+        self.actor_list = []
+        self.actor_selected = []
+        self.tag_list = []
+        self.tag_selected = []
 
         self.InitUI()
 
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        vbox.Add(wx.StaticText(self, label='Filters'), 0)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(wx.StaticText(self, label='Filters'), 0)
+        hbox.AddStretchSpacer()
+        self.clearButton = wx.Button(self, label='Clear')
+        self.Bind(wx.EVT_BUTTON, self.OnClear, self.clearButton)
+        hbox.Add(self.clearButton, 1)
 
-        self.actorList = wx.ListCtrl(self, size=(300, -1))
+        vbox.Add(hbox, 0, wx.EXPAND)
+
+        self.actorList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST|wx.LC_ALIGN_TOP)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnActorSelect, self.actorList)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnActorSelect, self.actorList)
         vbox.Add(self.actorList, 1, wx.EXPAND)
 
-        self.tagList = wx.ListCtrl(self, size=(300, -1))
+        self.tagList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST|wx.LC_ALIGN_TOP)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnTagSelect, self.tagList)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnTagSelect, self.tagList)
         vbox.Add(self.tagList, 1, wx.EXPAND)
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
 
+    def OnActorSelect(self, e):
+        self.actor_selected = []
+        idx = self.actorList.GetFirstSelected()
+        if idx < 0:
+            return
+        name = self.actorList.GetItemText(idx)
+        self.actor_selected.append(name)
+        while idx >= 0:
+            idx = self.actorList.GetNextSelected(idx)
+            if idx < 0:
+                break
+            name = self.actorList.GetItemText(idx)
+            self.actor_selected.append(name)
+        self.actor_selected.sort()
+        self.mm_window.update_view()
+
+    def OnTagSelect(self, e):
+        self.tag_selected = []
+        idx = self.tagList.GetFirstSelected()
+        if idx < 0:
+            return
+        tag = self.tagList.GetItemText(idx)
+        self.tag_selected.append(tag)
+        while idx >= 0:
+            idx = self.tagList.GetNextSelected(idx)
+            if idx < 0:
+                break
+            name = self.tagList.GetItemText(idx)
+            self.tag_selected.append(name)
+        self.tag_selected.sort()
+        self.mm_window.update_view()
+
+    def OnClear(self, e):
+        self.actor_selected = []
+        for n in range(self.actorList.GetItemCount()):
+            self.actorList.Select(n, on=0)
+        self.tag_selected = []
+        for n in range(self.tagList.GetItemCount()):
+            self.tagList.Select(n, on=0)
+        self.mm_window.update_view()
+
+    def update_lists(self):
+        self.actor_list.sort()
+        self.actorList.DeleteAllItems()
+        for name in self.actor_list:
+            idx = self.actorList.Append((name,))
+            if name in self.actor_selected:
+                self.actorList.Select(idx)
+
+        self.tag_list.sort()
+        self.tagList.DeleteAllItems()
+        for tag in self.tag_list:
+            idx = self.tagList.Append((tag,))
+            if tag in self.tag_selected:
+                self.tagList.Select(idx)
+
+    def set_mm_window(self, mm):
+        self.mm_window = mm
+
+        self.actor_list = []
+        self.tag_list = []
+        if not mm.catalog:
+            return
+        for actor in mm.catalog.actor_list:
+            self.actor_list.append(actor)
+        for tag in mm.catalog.tag_list:
+            self.tag_list.append(tag)
+
+        self.update_lists()
+
+    def add_actor(self, actor):
+        if actor in self.actor_list:
+            return
+        self.actor_list.append(actor)
+        self.actor_list.sort()
+        self.update_lists()
+
+    def add_tag(self, tag):
+        if tag in self.tag_list:
+            return
+        self.tag_list.append(tag)
+        self.tag_list.sort()
+        self.update_lists()
 
 class RightPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         super(RightPanel, self).__init__(*args, **kwargs)
 
-        self.mm_windows = None
+        self.mm_window = None
         self.media_file = None
 
         self.actor_list = []
@@ -92,8 +189,8 @@ class RightPanel(wx.Panel):
         self.actorList.EnableCheckBoxes()
         self.actorList.InsertColumn(0, 'Icon', width=20)
         self.actorList.InsertColumn(1, 'name', width=120)
-        self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnActorCheck)
-        self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnActorUncheck)
+        self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnActorCheck, self.actorList)
+        self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnActorUncheck, self.actorList)
         ivbox.Add(self.actorList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
         ivbox = wx.BoxSizer(wx.VERTICAL)
@@ -101,7 +198,12 @@ class RightPanel(wx.Panel):
         self.tagText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnTagAdd, self.tagText)
         ivbox.Add(self.tagText, 0, wx.EXPAND)
-        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
+        self.tagList.EnableCheckBoxes()
+        self.tagList.InsertColumn(0, 'Icon', width=20)
+        self.tagList.InsertColumn(1, 'name', width=120)
+        self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnTagCheck, self.tagList)
+        self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnTagUncheck, self.tagList)
         ivbox.Add(self.tagList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
@@ -129,10 +231,9 @@ class RightPanel(wx.Panel):
 
         if not (name in self.actor_list):
             self.actor_list.append(name)
-            self.actor_list.sort()
+            self.mm_window.leftPanel.add_actor(name)
         if not (name in self.actor_selected):
             self.actor_selected.append(name)
-            self.actor_selected.sort()
             self.media_file.add_actor(name)
 
         self.update_actor()
@@ -141,7 +242,6 @@ class RightPanel(wx.Panel):
         self.actor_list.sort()
         self.actor_selected.sort()
         self.actorList.DeleteAllItems()
-        as_i = 0
         for actor in self.actor_list:
             idx = self.actorList.Append(('', actor,))
             if actor in self.actor_selected:
@@ -150,8 +250,43 @@ class RightPanel(wx.Panel):
                 self.actorList.CheckItem(idx, check=False)
         self.actorText.SetValue('')
 
+    def OnTagCheck(self, e):
+        sel = e.GetIndex()
+        tag = self.tagList.GetItemText(sel, 1)
+        if self.media_file:
+            self.media_file.add_tag(tag)
+
+    def OnTagUncheck(self, e):
+        sel = e.GetIndex()
+        name = self.tagList.GetItemText(sel, 1)
+        if self.media_file:
+            self.media_file.del_tag(tag)
+
     def OnTagAdd(self, e):
-        pass
+        tag = self.tagText.GetValue()
+        if not tag:
+            return
+
+        if not (tag in self.tag_list):
+            self.tag_list.append(tag)
+            self.mm_window.leftPanel.add_tag(tag)
+        if not (tag in self.tag_selected):
+            self.tag_selected.append(tag)
+            self.media_file.add_tag(tag)
+
+        self.update_tag()
+
+    def update_tag(self):
+        self.tag_list.sort()
+        self.tag_selected.sort()
+        self.tagList.DeleteAllItems()
+        for tag in self.tag_list:
+            idx = self.tagList.Append(('', tag,))
+            if tag in self.tag_selected:
+                self.tagList.CheckItem(idx, check=True)
+            else:
+                self.tagList.CheckItem(idx, check=False)
+        self.tagText.SetValue('')
 
     def set_property(self):
         if not self.media_file:
@@ -193,7 +328,14 @@ class RightPanel(wx.Panel):
         self.actor_selected = []
         for sactor in mf.actor_list:
             self.actor_selected.append(sactor)
+        self.tag_list = []
+        for tag in mf.catalog.tag_list:
+            self.tag_list.append(tag)
+        self.tag_selected = []
+        for stag in mf.tag_list:
+            self.tag_selected.append(stag)
         self.update_actor()
+        self.update_tag()
         self.set_property()
 
 class CatalogDialog(wx.Dialog):
@@ -377,6 +519,7 @@ class MediaManager(wx.Frame):
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         self.leftPanel = LeftPanel(self, size=(300, -1))
+        self.leftPanel.set_mm_window(self)
         hbox.Add(self.leftPanel, 0, flag=wx.EXPAND)
 
         ivbox = wx.BoxSizer(wx.VERTICAL)
@@ -424,6 +567,7 @@ class MediaManager(wx.Frame):
         self.files_ctrl = files_ctrl
 
         self.rightPanel = RightPanel(self, size=(300, -1))
+        self.rightPanel.mm_window = self
         hbox.Add(self.rightPanel, 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
 
@@ -466,26 +610,26 @@ class MediaManager(wx.Frame):
 
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
-        self.OnViewChange(self.view_type)
+        self.update_view()
 
     def OnAscendChange(self, e):
         if self.ascendChoice.GetSelection():
             self.sort_ascend = False
         else:
             self.sort_ascend = True
-        self.OnViewChange(self.view_type)
+        self.update_view()
 
     def OnCloseCatalog(self, e):
         if not self.catalog:
             return
         self.catalog.close_database()
         self.catalog = None
-        self.OnViewChange(self.view_type)
+        self.update_view()
 
     def OnDbTimer(self, e):
         if self.db_updated:
             self.catalog.reload_files()
-            self.OnViewChange(self.view_type)
+            self.update_view()
             #if self.percent is not None:
             #    self.SetProgress(self.percent)
             self.db_updated = False
@@ -524,6 +668,9 @@ class MediaManager(wx.Frame):
         else:
             self.files_ctrl.Select(index)
 
+    def update_view(self):
+        self.OnViewChange(self.view_type)
+
     def OnViewChange(self, type):
         self.view_type = type
         self.files_ctrl.DeleteAllItems()
@@ -538,7 +685,9 @@ class MediaManager(wx.Frame):
         if not self.catalog:
             return
         self.files = self.catalog.filter(sort=self.sort_method,
-                                         ascend=self.sort_ascend)
+                                         ascend=self.sort_ascend,
+                                         actors=self.leftPanel.actor_selected,
+                                         tags=self.leftPanel.tag_selected)
         if not self.files:
             return
 
@@ -601,7 +750,7 @@ class MediaManager(wx.Frame):
     def OnCover(self, e):
         mf = self.mediafile_selected
         mf.set_cover_id(self.thumb_sel)
-        self.OnViewChange(self.view_type)
+        self.update_view()
 
     def OnThumbSelect(self, e):
         self.thumb_sel = self.thumbs_ctrl.GetFirstSelected()
@@ -718,10 +867,11 @@ class MediaManager(wx.Frame):
             pathname = fileDialog.GetPath()
             self.catalog = Catalog(db_abspath=pathname)
             self.catalog.open_database()
-            self.OnViewChange(self.view_type)
+            self.update_view()
 
             self.statusbar.SetStatusText('Start Scanning files...')
             self.OnSyncCatalog(e)
+            self.leftPanel.set_mm_window(self)
 
     def OnSyncCatalog(self, e):
         if self.cat_thread:
