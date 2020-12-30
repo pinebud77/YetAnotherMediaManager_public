@@ -57,8 +57,6 @@ def filter_sort_duration(mf):
 def filter_sort_path(mf):
     return mf.abspath()
 
-logging.basicConfig(level=logging.DEBUG)
-
 def get_abspath(topdir):
     return topdir.abspath
 
@@ -84,7 +82,7 @@ class Catalog(list):
     def open_database(self):
         try:
             self.db_conn = sqlite3.connect(self.filepath)
-            logging.debug('sqlite3 version: ' + sqlite3.version)
+            logging.info('sqlite3 version: ' + sqlite3.version)
         except Exception as e:
             logging.error('failed to open database file: %s' % self.filepath)
             logging.error('exception: %s' % e)
@@ -94,7 +92,7 @@ class Catalog(list):
         # TODO: add migration code based on DB and APP version diff
         ver_tuple = db_utils.get_app_version(self.db_conn)
         if ver_tuple:
-            logging.debug('database version = %d.%d' % (ver_tuple[0], ver_tuple[1]))
+            logging.info('database version = %d.%d' % (ver_tuple[0], ver_tuple[1]))
         elif not ver_tuple or ver_tuple[0] != MAJOR_VERSION or ver_tuple[1] != MINOR_VERSION:
             db_utils.set_app_version(self.db_conn, MAJOR_VERSION, MINOR_VERSION)
 
@@ -287,7 +285,7 @@ class Catalog(list):
         del_db_list = []
 
         for topdir in self.topdir_list:
-            logging.debug('processing %s' % topdir)
+            logging.info('processing %s' % topdir)
             fs_list = file_utils.get_topdir_filelist(topdir.abspath, self.extension_list)
             db_list = []
             for mf in self:
@@ -322,13 +320,16 @@ class Catalog(list):
             logging.debug(only_db_list)
 
             for onlyfs in only_fs_list:
+                if self.kill_thread:
+                    return
                 relpath = os.path.relpath(onlyfs, topdir.abspath)
                 reldir = os.path.dirname(relpath)
                 filename = os.path.basename(relpath)
                 mf = media_file.MediaFile(self, topdir, reldir, filename)
-                mf.loadinfo()
                 add_db_list.append(mf)
             for onlydb in only_db_list:
+                if self.kill_thread:
+                    return
                 del_db_list.append(onlydb)
 
         total = len(add_db_list)
@@ -337,7 +338,8 @@ class Catalog(list):
             if self.kill_thread:
                 return
             mf = add_db_list[0]
-            logging.debug('adding: %s' % mf.abspath())
+            mf.loadinfo()
+            logging.info('adding: %s' % mf.abspath())
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)

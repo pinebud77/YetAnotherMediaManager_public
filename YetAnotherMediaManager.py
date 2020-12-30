@@ -189,8 +189,6 @@ class RightPanel(wx.Panel):
         self.propertyList.SetItem(5, 1, '')
         self.set_property()
 
-        vbox.Add(wx.StaticText(self, label='Property'), 0)
-
         vbox.Add(self.propertyList)
         vbox.AddSpacer(5)
 
@@ -907,6 +905,11 @@ class MediaManager(wx.Frame):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    if sys.platform == 'win32':
+        import ctypes
+        ctypes.windll.kernel32.SetDllDirectoryA(None)
+
     app = wx.App()
     mm = MediaManager(None)
     mm.Show()
