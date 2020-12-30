@@ -1,5 +1,5 @@
-YA Media Manager
-================
+Yet Another Media Manager
+=========================
 
 This is my personal Media file manager.
 
