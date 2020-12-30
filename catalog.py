@@ -19,6 +19,7 @@ FILTER_SORT_FILENAME = 1
 FILTER_SORT_TIME = 2
 FILTER_SORT_LASTPLAY = 3
 FILTER_SORT_DURATION = 4
+FILTER_SORT_PATH = 5
 
 def filter_sort_filename(mf):
     return mf.filename
@@ -29,11 +30,15 @@ def filter_sort_time(mf):
 def filter_sort_lastplay(mf):
     if mf.lastplay:
         return datetime.datetime.strptime(mf.lastplay, '%Y-%m-%d %H:%M:%S.%f')
-    else:
-        return datetime.datetime.min
+    return datetime.datetime.min
 
 def filter_sort_duration(mf):
-    return mf.duration
+    if mf.duration:
+        return mf.duration
+    return 0
+
+def filter_sort_path(mf):
+    return mf.abspath()
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -122,6 +127,8 @@ class Catalog(list):
             l.sort(key=filter_sort_lastplay, reverse=(not ascend))
         elif sort == FILTER_SORT_DURATION:
             l.sort(key=filter_sort_duration, reverse=(not ascend))
+        elif sort == FILTER_SORT_PATH:
+            l.sort(key=filter_sort_path, reverse=(not ascend))
 
         return l
 

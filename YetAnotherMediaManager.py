@@ -279,6 +279,7 @@ def mm_sync_cb(newfile, percent):
         mm_global.statusbar.SetStatusText('File Added: %s (%d%% synced)' % (newfile, percent))
     else:
         mm_global.statusbar.SetStatusText('Catalog Sync Finished')
+    mm_global.percent = percent
     mm_global.db_updated = True
 
 def cat_thread_func(mm):
@@ -290,6 +291,7 @@ def cat_thread_func(mm):
     cat.sync_database(file_cb=mm_sync_cb)
     cat.close_database()
     mm.cat_thread = None
+    mm.percent = None
     print('thread finished')
 
 
@@ -305,8 +307,10 @@ class MediaManager(wx.Frame):
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
-        self.sort_method = FILTER_SORT_FILENAME
+        self.sort_method = FILTER_SORT_PATH
         self.sort_ascend = True
+
+        self.percent = None
 
         self.InitUI()
 
@@ -364,9 +368,17 @@ class MediaManager(wx.Frame):
         ivbox = wx.BoxSizer(wx.VERTICAL)
 
         ihbox = wx.BoxSizer(wx.HORIZONTAL)
+        ihbox.AddSpacer(5)
+        self.progressText = wx.StaticText(self, label='progress : ')
+        ihbox.Add(self.progressText, 0, wx.EXPAND)
+        self.progressGauge = wx.Gauge(self, size = (300, -1), style=wx.GA_HORIZONTAL)
+        self.progressGauge.SetRange(100)
+        self.progressText.Hide()
+        self.progressGauge.Hide()
+        ihbox.Add(self.progressGauge, 0, wx.EXPAND)
         ihbox.AddStretchSpacer()
-        ihbox.Add(wx.StaticText(self, label='sort by '), 0)
-        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', )
+        ihbox.Add(wx.StaticText(self, label='sort by '), 1, wx.EXPAND)
+        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', )
         self.sortChoice = wx.Choice(self, choices=sort_choices)
         self.sortChoice.SetSelection(self.sort_method)
         self.Bind(wx.EVT_CHOICE, self.OnSortChange, self.sortChoice)
@@ -429,6 +441,15 @@ class MediaManager(wx.Frame):
         self.SetTitle('Yet Another Media Manager')
         self.Centre()
 
+    def SetProgress(self, percent):
+        self.progressText.Show()
+        self.progressGauge.Show()
+        self.progressGauge.SetValue(percent)
+
+    def HideProgress(self):
+        self.progressText.Hide()
+        self.progressGauge.Hide()
+
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
         self.OnViewChange(self.view_type)
@@ -451,11 +472,14 @@ class MediaManager(wx.Frame):
         if self.db_updated:
             self.catalog.reload_files()
             self.OnViewChange(self.view_type)
+            #if self.percent is not None:
+            #    self.SetProgress(self.percent)
             self.db_updated = False
         if self.cat_thread and self.cat_thread.is_alive():
             self.db_timer.Start(500)
         else:
             self.db_updated = False
+            #self.HideProgress()
 
     def get_scaled_image(self, il, image):
         il_size = il.GetSize()
