@@ -931,7 +931,8 @@ class MediaManager(wx.Frame):
         self.thumbRightMenu.Destroy()
         self.catalog.kill_thread = True
         if self.cat_thread:
-            self.cat_thread.join()
+            self.cat_thread.join(timeout=60)
+            del self.cat_thread
         self.Close()
 
 

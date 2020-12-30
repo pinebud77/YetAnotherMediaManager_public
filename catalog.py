@@ -29,7 +29,7 @@ import file_utils as file_utils
 
 MAJOR_VERSION = 0
 MINOR_VERSION = 1
-DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv']
+DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv', 'flv']
 
 FILTER_SORT_NONE = 0
 FILTER_SORT_FILENAME = 1

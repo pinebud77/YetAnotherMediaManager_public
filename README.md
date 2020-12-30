@@ -15,6 +15,7 @@ Features Planed
 * actor image
 * performance optimization
 * adding more GUI icons
+* save/load configuration file
 
 Implementation details
 * GUI : wxPython
@@ -25,7 +26,10 @@ Dependencies
 * wxpython GUI library : pip install wxpython
 
 Problems
+* DB schema is not fixed yet
 * main list control is too slow to update
+* lag during scaning files
+* should use sort function from wx.ListCtrl
 
 current picture
 ![current pic](https://github.com/pinebud77/YetAnotherMediaManager_public/blob/main/yamm.png)
