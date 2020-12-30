@@ -87,7 +87,8 @@ class MediaFile:
         self.lastplay = dt
         db_utils.update_file(self.catalog.db_conn, self)
 
-    def create_thumbnails(self, fpath, period=DEF_STREAM_PERIOD, width=DEF_THUMBNAIL_WIDTH, height=DEF_THUMBNAIL_HEIGHT):
+    def create_thumbnails(self, period=DEF_STREAM_PERIOD, width=DEF_THUMBNAIL_WIDTH, height=DEF_THUMBNAIL_HEIGHT):
+        fpath = self.abspath()
         try:
             clip = VideoFileClip(fpath)
         except Exception as e:
@@ -118,27 +119,25 @@ class MediaFile:
 
             thumbnails.append((time, byte_arr.getvalue()))
 
-        return thumbnails
+        self.thumbnails = thumbnails
+
+    def save_thumbnails(self):
+        db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
+
 
     def abspath(self):
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
 
-    def load_thumbnails(self, create=False):
+    def load_thumbnails(self):
         logging.info('loading thumbnail for %s' % self.abspath())
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
-        if not create:
-            return
-        self.thumbnails = self.create_thumbnails(self.abspath())
-        if not self.thumbnails:
-            return
-        db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def get_thumbnails(self):
         if self.thumbnails:
             return self.thumbnails
-        self.load_thumbnails(create=False)
+        self.load_thumbnails()
         if self.thumbnails:
             return self.thumbnails
         return None
@@ -147,7 +146,7 @@ class MediaFile:
         if self.cover:
             return self.cover
         if not self.thumbnails:
-            self.load_thumbnails(create=False)
+            self.load_thumbnails()
         if not self.thumbnails:
             return None
         count = len(self.thumbnails)
@@ -155,6 +154,7 @@ class MediaFile:
         thumbnail = self.thumbnails[count][1]
         db_utils.del_cover(self.catalog.db_conn, self.id)
         db_utils.add_cover(self.catalog.db_conn, self.id, thumbnail)
+        self.cover = thumbnail
         return thumbnail
 
     def set_cover_id(self, sel):

@@ -37,6 +37,7 @@ FILTER_SORT_TIME = 2
 FILTER_SORT_LASTPLAY = 3
 FILTER_SORT_DURATION = 4
 FILTER_SORT_PATH = 5
+FILTER_SORT_SIZE = 6
 
 def filter_sort_filename(mf):
     return mf.filename
@@ -57,9 +58,13 @@ def filter_sort_duration(mf):
 def filter_sort_path(mf):
     return mf.abspath()
 
+def filter_sort_size(mf):
+    if mf.size:
+        return mf.size
+    return 0
+
 def get_abspath(topdir):
     return topdir.abspath
-
 
 def get_2nd_element(list_element):
     return list_element[1]
@@ -212,6 +217,8 @@ class Catalog(list):
             l.sort(key=filter_sort_duration, reverse=(not ascend))
         elif sort == FILTER_SORT_PATH:
             l.sort(key=filter_sort_path, reverse=(not ascend))
+        elif sort == FILTER_SORT_SIZE:
+            l.sort(key=filter_sort_size, reverse=(not ascend))
 
         return l
 
@@ -340,10 +347,11 @@ class Catalog(list):
             mf = add_db_list[0]
             mf.loadinfo()
             logging.info('adding: %s' % mf.abspath())
+            mf.create_thumbnails()
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
-            mf.load_thumbnails(create=True)
+            mf.save_thumbnails()
             self.append(mf)
             if file_cb is not None:
                 count += 1
@@ -391,7 +399,10 @@ class Catalog(list):
             topdir = self.get_topdir_from_id(df[1])
             mf = media_file.MediaFile(self, topdir, df[2], df[3])
             mf.load_dbtuple(df)
-            #mf.load_thumbnails(create=False)
+            mf.load_thumbnails()
+            mf.get_coverjpg()
+            del(mf.thumbnails)
+            mf.thumbnails = None
             self.append(mf)
 
     def sync_database(self, file_cb=None):

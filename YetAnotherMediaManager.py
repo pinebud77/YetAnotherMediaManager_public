@@ -548,7 +548,7 @@ class MediaManager(wx.Frame):
         ihbox.Add(self.progressGauge, 0, wx.EXPAND)
         ihbox.AddStretchSpacer()
         ihbox.Add(wx.StaticText(self, label='sort by '), 1, wx.EXPAND)
-        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', )
+        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
         self.sortChoice = wx.Choice(self, choices=sort_choices)
         self.sortChoice.SetSelection(self.sort_method)
         self.Bind(wx.EVT_CHOICE, self.OnSortChange, self.sortChoice)
@@ -823,6 +823,8 @@ class MediaManager(wx.Frame):
         self.mediafile_selected = mf
         self.rightPanel.set_mediafile(mf)
 
+        if not mf.get_thumbnails():
+            return
         index = 0
         for tb in mf.get_thumbnails():
             time = tb[0]
