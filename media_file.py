@@ -110,7 +110,11 @@ class MediaFile:
 
         thumbnails = []
         for time in range(0, duration, period):
-            frame = clip.get_frame(time)
+            try:
+                frame = clip.get_frame(time)
+            except Exception as e:
+                print(e)
+                return
             p = Image.fromarray(frame)
             p.thumbnail((width, height))
 
