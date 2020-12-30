@@ -108,7 +108,7 @@ class MediaFile:
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
 
     def load_thumbnails(self, create=True):
-        logging.info('loading thumbnail for %s' % self.abspath())
+        logging.debug('loading thumbnail for %s' % self.abspath())
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
@@ -119,14 +119,27 @@ class MediaFile:
             return
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
+    def get_thumbnails(self):
+        if self.thumbnails:
+            return self.thumbnails
+        self.load_thumbnails(create=False)
+        if self.thumbnails:
+            return self.thumbnails
+        return None
+
     def get_coverjpg(self):
         if self.cover:
             return self.cover
         if not self.thumbnails:
+            self.load_thumbnails()
+        if not self.thumbnails:
             return None
         count = len(self.thumbnails)
         count = int (count * 0.7)
-        return self.thumbnails[count][1]
+        thumbnail = self.thumbnails[count][1]
+        db_utils.del_cover(self.catalog.db_conn, self.id)
+        db_utils.add_cover(self.catalog.db_conn, self.id, thumbnail)
+        return thumbnail
 
     def set_cover_id(self, sel):
         if not self.thumbnails:

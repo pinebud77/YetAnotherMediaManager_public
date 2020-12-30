@@ -60,7 +60,7 @@ class Catalog(list):
     def open_database(self):
         try:
             self.db_conn = sqlite3.connect(self.filepath)
-            logging.info('sqlite3 version: ' + sqlite3.version)
+            logging.debug('sqlite3 version: ' + sqlite3.version)
         except Exception as e:
             logging.error('failed to open database file: %s' % self.filepath)
             logging.error('exception: %s' % e)
@@ -70,7 +70,7 @@ class Catalog(list):
         # TODO: add migration code based on DB and APP version diff
         ver_tuple = db_utils.get_app_version(self.db_conn)
         if ver_tuple:
-            logging.info('database version = %d.%d' % (ver_tuple[0], ver_tuple[1]))
+            logging.debug('database version = %d.%d' % (ver_tuple[0], ver_tuple[1]))
         elif not ver_tuple or ver_tuple[0] != MAJOR_VERSION or ver_tuple[1] != MINOR_VERSION:
             db_utils.set_app_version(self.db_conn, MAJOR_VERSION, MINOR_VERSION)
 
@@ -96,7 +96,6 @@ class Catalog(list):
             topdir = self.get_topdir_from_id(df[1])
             mf = media_file.MediaFile(self, topdir, df[2], df[3])
             mf.load_dbtuple(df)
-            mf.load_thumbnails(create=False)
             self.append(mf)
 
         #load cover table
@@ -196,7 +195,7 @@ class Catalog(list):
         del_db_list = []
 
         for topdir in self.topdir_list:
-            logging.info('processing %s' % topdir)
+            logging.debug('processing %s' % topdir)
             fs_list = file_utils.get_topdir_filelist(topdir.abspath, self.extension_list)
             db_list = []
             for mf in self:
@@ -225,12 +224,10 @@ class Catalog(list):
             if db_i < len(db_list):
                 only_db_list.extend(db_list[db_i:])
 
-            logging.info('db_i %d, fs_i %d' % (db_i, fs_i))
-
-            logging.info('only on fs:')
-            logging.info(only_fs_list)
-            logging.info('only on DB:')
-            logging.info(only_db_list)
+            logging.debug('only on fs:')
+            logging.debug(only_fs_list)
+            logging.debug('only on DB:')
+            logging.debug(only_db_list)
 
             for onlyfs in only_fs_list:
                 relpath = os.path.relpath(onlyfs, topdir.abspath)
@@ -244,8 +241,9 @@ class Catalog(list):
 
         total = len(add_db_list)
         count = 0
-        for mf in add_db_list:
-            logging.info('adding: %s' % mf.abspath())
+        while add_db_list:
+            mf = add_db_list[0]
+            logging.debug('adding: %s' % mf.abspath())
             if self.kill_thread:
                 return
             db_utils.add_file_nocommit(self.db_conn, mf)
@@ -253,11 +251,11 @@ class Catalog(list):
             db_utils.set_file_id(self.db_conn, mf)
             mf.load_thumbnails(create=True)
             self.append(mf)
-
             if file_cb is not None:
                 count += 1
                 percent = int(count / total * 100)
                 file_cb(mf, percent)
+            del add_db_list[0]
 
         for mf in del_db_list:
             if self.kill_thread:
@@ -277,8 +275,6 @@ class Catalog(list):
             if mf_i == len(self):
                 break
             mf = self[mf_i]
-            if not mf.thumbnails:
-                mf.load_thumbnails(create=False)
             df_i = 0
             found = False
             while True:

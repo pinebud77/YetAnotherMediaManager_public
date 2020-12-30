@@ -49,6 +49,11 @@ class RightPanel(wx.Panel):
         self.mm_windows = None
         self.media_file = None
 
+        self.actor_list = []
+        self.actor_selected = []
+        self.tag_list = []
+        self.tag_selected = []
+
         self.InitUI()
 
     def InitUI(self):
@@ -80,12 +85,23 @@ class RightPanel(wx.Panel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         ivbox = wx.BoxSizer(wx.VERTICAL)
         ivbox.Add(wx.StaticText(self, label='Actors'), 0)
-        self.actorList = wx.ListCtrl(self, size=(150, -1))
+        self.actorText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnActorAdd, self.actorText)
+        ivbox.Add(self.actorText, 0, wx.EXPAND)
+        self.actorList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
+        self.actorList.EnableCheckBoxes()
+        self.actorList.InsertColumn(0, 'Icon', width=20)
+        self.actorList.InsertColumn(1, 'name', width=120)
+        self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnActorCheck)
+        self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnActorUncheck)
         ivbox.Add(self.actorList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
         ivbox = wx.BoxSizer(wx.VERTICAL)
         ivbox.Add(wx.StaticText(self, label='Tags'), 0)
-        self.tagList = wx.ListCtrl(self, size=(150, -1))
+        self.tagText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnTagAdd, self.tagText)
+        ivbox.Add(self.tagText, 0, wx.EXPAND)
+        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER)
         ivbox.Add(self.tagList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
@@ -93,6 +109,42 @@ class RightPanel(wx.Panel):
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
+
+    def OnActorCheck(self, e):
+        sel = e.GetIndex()
+        name = self.actorList.GetItemText(sel, 1)
+        if self.media_file:
+            self.media_file.add_actor(name)
+
+    def OnActorUncheck(self, e):
+        sel = e.GetIndex()
+        name = self.actorList.GetItemText(sel, 1)
+        if self.media_file:
+            self.media_file.del_actor(name)
+
+    def OnActorAdd(self, e):
+        name = self.actorText.GetValue()
+        if not name:
+            return
+
+        if not (name in self.actor_list):
+            self.actor_list.append(name)
+            self.actor_list.sort()
+        if not (name in self.actor_selected):
+            self.actor_selected.append(name)
+            self.actor_selected.sort()
+        self.actorList.DeleteAllItems()
+        as_i = 0
+        for actor in self.actor_list:
+            idx = self.actorList.Append(('', actor,))
+            if actor in self.actor_selected:
+                self.actorList.CheckItem(idx, check=True)
+            else:
+                self.actorList.CheckItem(idx, check=False)
+        self.actorText.SetValue('')
+
+    def OnTagAdd(self, e):
+        pass
 
     def set_property(self):
         if not self.media_file:
@@ -182,7 +234,7 @@ class CatalogDialog(wx.Dialog):
         self.SetAutoLayout(True)
 
     def OnCatButton(self, e):
-       with wx.FileDialog(self, "New Catalog File", wildcard='catalog files (*.nmcat)|*.nmcat',
+       with wx.FileDialog(self, "New Catalog File", wildcard='catalog files (*.yamm)|*.yamm',
                            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
@@ -543,7 +595,7 @@ class MediaManager(wx.Frame):
             self.mediafile_selected = mf
         self.rightPanel.set_mediafile(mf)
         index = 0
-        for tb in mf.thumbnails:
+        for tb in mf.get_thumbnails():
             time = tb[0]
             jpg = tb[1]
 
@@ -620,7 +672,7 @@ class MediaManager(wx.Frame):
             self.OnSyncCatalog(e)
 
     def OnOpenCatalog(self, e):
-        with wx.FileDialog(self, "Open Catalog", wildcard='catalog files (*.nmcat)|*.nmcat',
+        with wx.FileDialog(self, "Open Catalog", wildcard='catalog files (*.yamm)|*.yamm',
                            style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
