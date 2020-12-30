@@ -789,11 +789,14 @@ class MediaManager(wx.Frame):
             return
         mf = self.files[sel]
 
-        if mf !=self.mediafile_selected:
-            self.thumbs_ctrl.DeleteAllItems()
-            self.thumbs_list.RemoveAll()
-            self.mediafile_selected = mf
-            self.rightPanel.set_mediafile(mf)
+        if mf ==self.mediafile_selected:
+            return
+
+        self.thumbs_ctrl.DeleteAllItems()
+        self.thumbs_list.RemoveAll()
+        self.mediafile_selected = mf
+        self.rightPanel.set_mediafile(mf)
+
         index = 0
         for tb in mf.get_thumbnails():
             time = tb[0]
