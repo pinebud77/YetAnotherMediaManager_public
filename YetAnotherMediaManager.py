@@ -704,6 +704,8 @@ class MediaManager(wx.Frame):
         if not self.files:
             return
 
+        self.files_ctrl.Hide()
+
         if type == DETAIL_THUMBNAILS:
             self.files_ctrl.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
         else:
@@ -740,6 +742,8 @@ class MediaManager(wx.Frame):
             self.files_ctrl.SetItemImage(index, index)
 
             index += 1
+
+        self.files_ctrl.Show()
 
         self.select_mediafile(self.mediafile_selected)
         self.GetSizer().Layout()
