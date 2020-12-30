@@ -647,7 +647,7 @@ class MediaManager(wx.Frame):
             #    self.SetProgress(self.percent)
             self.db_updated = False
         if self.cat_thread and self.cat_thread.is_alive():
-            self.db_timer.Start(500)
+            self.db_timer.Start(5000)
         else:
             self.db_updated = False
             #self.HideProgress()
