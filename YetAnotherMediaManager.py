@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+# Copyright 2020 pinebud77@hotmail.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import subprocess
 import sys
@@ -439,7 +454,7 @@ def mm_sync_cb(newfile, percent):
     mm_global.db_updated = True
 
 def cat_thread_func(mm):
-    print('thread started')
+    logging.debug('thread started')
     global mm_global
     mm_global = mm
     cat = Catalog(mm.catalog.filepath)
@@ -448,7 +463,7 @@ def cat_thread_func(mm):
     cat.close_database()
     mm.cat_thread = None
     mm.percent = None
-    print('thread finished')
+    logging.debug('thread finished')
 
 
 class MediaManager(wx.Frame):
