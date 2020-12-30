@@ -51,7 +51,7 @@ class MediaFile:
 
         self.catetory = None
         self.tag_list = None
-        self.actor_list = None
+        self.actor_list = []
         self.thumbnails = None
         self.cover = None
 
@@ -107,7 +107,7 @@ class MediaFile:
     def abspath(self):
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
 
-    def load_thumbnails(self, create=True):
+    def load_thumbnails(self, create=False):
         logging.debug('loading thumbnail for %s' % self.abspath())
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
@@ -131,7 +131,7 @@ class MediaFile:
         if self.cover:
             return self.cover
         if not self.thumbnails:
-            self.load_thumbnails()
+            self.load_thumbnails(create=False)
         if not self.thumbnails:
             return None
         count = len(self.thumbnails)
@@ -158,6 +158,14 @@ class MediaFile:
         except Exception as e:
             print(e)
             return
+
+    def add_actor(self, name):
+        if name in self.actor_list:
+            return
+        if not (name in self.catalog.actor_list):
+            self.catalog.add_actor(name)
+        db_utils.add_actorfile(self.catalog.db_conn, name, self.id)
+        self.actor_list.append(name)
 
     def add_tag(self, tag):
         pass

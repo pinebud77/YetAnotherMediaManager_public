@@ -133,6 +133,13 @@ class RightPanel(wx.Panel):
         if not (name in self.actor_selected):
             self.actor_selected.append(name)
             self.actor_selected.sort()
+            self.media_file.add_actor(name)
+
+        self.update_actor()
+
+    def update_actor(self):
+        self.actor_list.sort()
+        self.actor_selected.sort()
         self.actorList.DeleteAllItems()
         as_i = 0
         for actor in self.actor_list:
@@ -180,6 +187,13 @@ class RightPanel(wx.Panel):
 
     def set_mediafile(self, mf):
         self.media_file = mf
+        self.actor_list = []
+        for actor in mf.catalog.actor_list:
+            self.actor_list.append(actor)
+        self.actor_selected = []
+        for sactor in mf.actor_list:
+            self.actor_selected.append(sactor)
+        self.update_actor()
         self.set_property()
 
 class CatalogDialog(wx.Dialog):
@@ -617,7 +631,7 @@ class MediaManager(wx.Frame):
             self.thumbs_ctrl.DeleteAllItems()
             self.thumbs_list.RemoveAll()
             self.mediafile_selected = mf
-        self.rightPanel.set_mediafile(mf)
+            self.rightPanel.set_mediafile(mf)
         index = 0
         for tb in mf.get_thumbnails():
             time = tb[0]

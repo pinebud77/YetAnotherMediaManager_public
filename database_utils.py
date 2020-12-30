@@ -296,3 +296,94 @@ def get_cover(conn):
     c.execute(sql_get_cover)
     return c.fetchall()
 
+
+sql_create_actor_table = """CREATE TABLE IF NOT EXISTS actor (
+                                name TEXT UNIQUE PRIMARY KEY,
+                                picture BLOB);"""
+
+def create_actor_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_actor_table)
+    conn.commit()
+
+
+sql_del_actor = """DELETE FROM actor
+                   WHERE name=?;"""
+
+def del_actor(conn, name):
+    c = conn.cursor()
+    c.execute(sql_del_actor, (name,))
+    conn.commit()
+
+
+sql_add_actor = """INSERT INTO actor (name, picture)
+                   VALUES(?, ?);"""
+
+def add_actor(conn, name, picture):
+    c = conn.cursor()
+    c.execute(sql_add_actor, (name, picture,))
+    conn.commit()
+
+
+sql_update_actor = """UPDATE
+                      SET picture=?
+                      WHERE name=?;"""
+
+def update_actor(conn, name, picture):
+    c = conn.cursor()
+    c.execute(sql_update_actor, (name, picture,))
+    conn.commit()
+
+
+sql_get_actor = """SELECT name, picture
+                   FROM actor;"""
+
+def get_actor_list(conn):
+    c = conn.cursor()
+    c.execute(sql_get_actor)
+    return c.fetchall()
+
+
+sql_create_actorfile_table = """CREATE TABLE IF NOT EXISTS actorfile (
+                                    name TEXT,
+                                    file_id INTEGER,
+                                    CONSTRAINT fk_name
+                                        FOREIGN KEY (name)
+                                        REFERENCES actor(name)
+                                        ON DELETE CASCADE,
+                                    CONSTRAINT fk_file_id
+                                        FOREIGN KEY (file_id)
+                                        REFERENCES file(id)
+                                        ON DELETE CASCADE);"""
+
+def create_actorfile_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_actorfile_table)
+    conn.commit()
+
+
+sql_add_actorfile = """INSERT INTO actorfile (name, file_id)
+                       VALUES(?, ?);"""
+
+def add_actorfile(conn, name, file_id):
+    c = conn.cursor()
+    c.execute(sql_add_actorfile, (name, file_id,))
+    conn.commit()
+
+
+sql_del_actorfile = """DELETE FROM actorfile
+                       WHERE name=?, file_id=?;"""
+
+def del_actorfile(conn, name, file_id):
+    c = conn.cursor()
+    c.execute(sql_del_actorfile), (name, file_id,)
+    conn.commit()
+
+
+sql_get_actorfile = """SELECT name, file_id
+                       FROM actorfile;"""
+
+def get_actorfile_list(conn):
+    c = conn.cursor()
+    c.execute(sql_get_actorfile)
+    return c.fetchall()

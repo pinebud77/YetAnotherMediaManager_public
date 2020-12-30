@@ -29,7 +29,7 @@ def filter_sort_time(mf):
 
 def filter_sort_lastplay(mf):
     if mf.lastplay:
-        return datetime.datetime.strptime(mf.lastplay, '%Y-%m-%d %H:%M:%S.%f')
+        return mf.lastplay
     return datetime.datetime.min
 
 def filter_sort_duration(mf):
@@ -58,6 +58,7 @@ class Catalog(list):
     def __init__(self, db_abspath, extension_list=DEFAULT_FILE_EXT):
         self.filepath = db_abspath
         self.topdir_list = []
+        self.actor_list = []
         self.db_conn = None
         self.extension_list = extension_list
         self.kill_thread = False
@@ -103,6 +104,19 @@ class Catalog(list):
             mf.load_dbtuple(df)
             self.append(mf)
 
+        # create actor table
+        db_utils.create_actor_table(self.db_conn)
+        db_actor_list = db_utils.get_actor_list(self.db_conn)
+        for db_actor in db_actor_list:
+            self.actor_list.append(db_actor[0])
+
+        # create actorfile table
+        db_utils.create_actorfile_table(self.db_conn)
+        db_actorfile_list = db_utils.get_actorfile_list(self.db_conn)
+        for db_actorfile in db_actorfile_list:
+            mf = self.get_file_from_id(db_actorfile[1])
+            mf.actor_list.append(db_actorfile[0])
+
         #load cover table
         db_utils.create_cover_table(self.db_conn)
         db_cover_list = db_utils.get_cover(self.db_conn)
@@ -113,6 +127,19 @@ class Catalog(list):
                 if mf.id == file_id:
                     mf.cover = jpg
                     break
+
+    def add_actor(self, name, picture=None):
+        if name in self.actor_list:
+            return
+        db_utils.add_actor(self.db_conn, name, picture)
+        print('in add_actor %s' % name)
+        self.actor_list.append(name)
+
+    def get_file_from_id(self, file_id):
+        for mf in self:
+            if mf.id == file_id:
+                return mf
+        return None
 
     def filter(self, sort=FILTER_SORT_NONE, ascend=True, actors=[], tags=[], stars=None):
         l = []
@@ -249,10 +276,10 @@ class Catalog(list):
         total = len(add_db_list)
         count = 0
         while add_db_list:
-            mf = add_db_list[0]
-            logging.debug('adding: %s' % mf.abspath())
             if self.kill_thread:
                 return
+            mf = add_db_list[0]
+            logging.debug('adding: %s' % mf.abspath())
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
@@ -304,7 +331,7 @@ class Catalog(list):
             topdir = self.get_topdir_from_id(df[1])
             mf = media_file.MediaFile(self, topdir, df[2], df[3])
             mf.load_dbtuple(df)
-            mf.load_thumbnails(create=False)
+            #mf.load_thumbnails(create=False)
             self.append(mf)
 
     def sync_database(self, file_cb=None):
