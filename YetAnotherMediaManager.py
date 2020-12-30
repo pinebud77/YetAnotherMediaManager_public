@@ -642,7 +642,29 @@ class MediaManager(wx.Frame):
     def OnDbTimer(self, e):
         if self.db_updated:
             self.catalog.reload_files()
-            self.update_view()
+
+            files = self.catalog.filter(sort=self.sort_method,
+                                        ascend=self.sort_ascend,
+                                        actors=self.leftPanel.actor_selected,
+                                        tags=self.leftPanel.tag_selected)
+            for mf in files:
+                if not (mf in self.files):
+                    index = self.files_ctrl.GetItemCount()
+                    self.files_ctrl.InsertItem(index, mf.filename)
+
+                    jpg_bytes = mf.get_coverjpg()
+                    if jpg_bytes:
+                        data_stream = io.BytesIO(jpg_bytes)
+                        image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                    else:
+                        image = wx.Image(360, 203)
+                    image = self.get_scaled_image(self.image_list, image)
+                    bmp = wx.Bitmap(image)
+                    self.image_list.Add(bmp)
+                    self.files_ctrl.SetItemImage(index, index)
+
+                    self.files.append(mf)
+
             #if self.percent is not None:
             #    self.SetProgress(self.percent)
             self.db_updated = False
