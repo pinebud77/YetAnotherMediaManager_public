@@ -122,8 +122,9 @@ class MediaFile:
         self.thumbnails = thumbnails
 
     def save_thumbnails(self):
+        if not self.thumbnails:
+            return
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
-
 
     def abspath(self):
         return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
