@@ -90,6 +90,7 @@ class MediaManager(wx.Frame):
         catOpen = catMenu.Append(wx.ID_ANY, 'Open Catalog', 'Open Existing Catalog')
         catEdit = catMenu.Append(wx.ID_ANY, 'Edit Catalog', 'Edit Opened Catalog')
         catSync = catMenu.Append(wx.ID_ANY, 'Sync Catalog files', 'Sync Opened Catalog files')
+        catStop = catMenu.Append(wx.ID_ANY, 'Stop Syncing Catalog', 'Stop Syncing Catalog')
         catClose = catMenu.Append(wx.ID_ANY, 'Close Catalog files', 'Close Opened Catalog files')
         catMenu.AppendSeparator()
         catExit = catMenu.Append(wx.ID_EXIT, 'Quit', 'Quit Application')
@@ -99,6 +100,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnOpenCatalog, catOpen)
         self.Bind(wx.EVT_MENU, self.OnEditCatalog, catEdit)
         self.Bind(wx.EVT_MENU, self.OnSyncCatalog, catSync)
+        self.Bind(wx.EVT_MENU, self.OnSyncStop, catStop)
         self.Bind(wx.EVT_MENU, self.OnCloseCatalog, catClose)
         self.Bind(wx.EVT_MENU, self.OnQuit, catExit)
 
@@ -160,39 +162,39 @@ class MediaManager(wx.Frame):
         ihbox.Add(self.ascendChoice, 0)
         ivbox.Add(ihbox, 0, wx.EXPAND)
 
-        files_ctrl = wx.ListCtrl(self, style=wx.LC_ICON |
+        filesList = wx.ListCtrl(self, style=wx.LC_ICON |
                                              wx.LC_SINGLE_SEL |
                                              wx.BORDER_SUNKEN |
                                              wx.LC_AUTOARRANGE |
                                              wx.LC_SORT_ASCENDING)
-        files_ctrl.InsertColumn(0, 'thumbnail', width=360)
-        files_ctrl.InsertColumn(1, 'filename', width=200)
-        files_ctrl.InsertColumn(2, 'size', width=100)
-        files_ctrl.InsertColumn(3, 'duration', width=100)
-        files_ctrl.InsertColumn(4, 'path', width=360)
-        files_ctrl.SetAutoLayout(True)
-        ivbox.Add(files_ctrl, 1, flag=wx.ALL|wx.EXPAND)
+        filesList.InsertColumn(0, 'thumbnail', width=360)
+        filesList.InsertColumn(1, 'filename', width=200)
+        filesList.InsertColumn(2, 'size', width=100)
+        filesList.InsertColumn(3, 'duration', width=100)
+        filesList.InsertColumn(4, 'path', width=360)
+        filesList.SetAutoLayout(True)
+        ivbox.Add(filesList, 1, flag=wx.ALL|wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
         self.image_list = wx.ImageList(360, 203)
-        files_ctrl.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, files_ctrl)
-        #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, files_ctrl)
-        self.files_ctrl = files_ctrl
+        filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
+        #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
+        self.filesList = filesList
 
         self.rightPanel = RightPanel(self, size=(300, -1))
         self.rightPanel.mm_window = self
         hbox.Add(self.rightPanel, 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
 
-        thumbs_ctrl = wx.ListCtrl(self, size=(240 * 50, 177),  style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_ALIGN_LEFT|wx.LC_AUTOARRANGE)
+        thumbsList = wx.ListCtrl(self, size=(240 * 50, 177),  style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_ALIGN_LEFT|wx.LC_AUTOARRANGE)
         self.thumbs_list = wx.ImageList(240, 135)
-        thumbs_ctrl.SetImageList(self.thumbs_list, wx.IMAGE_LIST_NORMAL)
-        vbox.Add(thumbs_ctrl, 0, wx.EXPAND)
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnThumbSelect, thumbs_ctrl)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnThumbDClick, thumbs_ctrl)
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnThumbRight, thumbs_ctrl)
-        self.thumbs_ctrl = thumbs_ctrl
+        thumbsList.SetImageList(self.thumbs_list, wx.IMAGE_LIST_NORMAL)
+        vbox.Add(thumbsList, 0, wx.EXPAND)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnThumbSelect, thumbsList)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnThumbDClick, thumbsList)
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnThumbRight, thumbsList)
+        self.thumbsList = thumbsList
 
         self.db_timer = wx.Timer(self, 0)
         self.Bind(wx.EVT_TIMER, self.OnDbTimer)
@@ -225,17 +227,17 @@ class MediaManager(wx.Frame):
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
         if self.sort_method == FILTER_SORT_FILENAME:
-            self.files_ctrl.SortItems(self.sort_filename)
+            self.filesList.SortItems(self.sort_filename)
         elif self.sort_method == FILTER_SORT_TIME:
-            self.files_ctrl.SortItems(self.sort_time)
+            self.filesList.SortItems(self.sort_time)
         elif self.sort_method == FILTER_SORT_LASTPLAY:
-            self.files_ctrl.SortItems(self.sort_lastplay)
+            self.filesList.SortItems(self.sort_lastplay)
         elif self.sort_method == FILTER_SORT_DURATION:
-            self.files_ctrl.SortItems(self.sort_duration)
+            self.filesList.SortItems(self.sort_duration)
         elif self.sort_method == FILTER_SORT_PATH:
-            self.files_ctrl.SortItems(self.sort_path)
+            self.filesList.SortItems(self.sort_path)
         elif self.sort_method == FILTER_SORT_SIZE:
-            self.files_ctrl.SortItems(self.sort_size)
+            self.filesList.SortItems(self.sort_size)
 
     def OnAscendChange(self, e):
         if self.ascendChoice.GetSelection() == 0:
@@ -243,15 +245,6 @@ class MediaManager(wx.Frame):
         else:
             self.sort_positive = 1
         self.OnSortChange(None)
-
-    def OnCloseCatalog(self, e):
-        if not self.catalog:
-            return
-        self.catalog.close_database()
-        self.catalog = None
-        self.leftPanel.set_mm_windows(None)
-        self.rightPanel.set_mediafile(None)
-        self.update_view()
 
     def OnDbTimer(self, e):
         if self.db_updated:
@@ -271,9 +264,9 @@ class MediaManager(wx.Frame):
                     return
 
                 if not (mf in self.files):
-                    index = self.files_ctrl.GetItemCount()
-                    self.files_ctrl.InsertItem(index, mf.filename)
-                    self.files_ctrl.SetItemPtrData(index, mf)
+                    index = self.filesList.GetItemCount()
+                    self.filesList.InsertItem(index, mf.filename)
+                    self.filesList.SetItemPtrData(index, mf)
 
                     jpg_bytes = mf.get_coverjpg()
                     if jpg_bytes:
@@ -284,7 +277,7 @@ class MediaManager(wx.Frame):
                     image = self.get_scaled_image(self.image_list, image)
                     bmp = wx.Bitmap(image)
                     self.image_list.Add(bmp)
-                    self.files_ctrl.SetItemImage(index, index)
+                    self.filesList.SetItemImage(index, index)
 
                     self.files.append(mf)
             self.db_updated = False
@@ -320,7 +313,7 @@ class MediaManager(wx.Frame):
         if index == len(self.catalog):
             self.mediafile_selected = None
         else:
-            self.files_ctrl.Select(index)
+            self.filesList.Select(index)
 
     def sort_filename(self, item1, item2):
         mf1 = self.files[item1]
@@ -405,14 +398,14 @@ class MediaManager(wx.Frame):
 
     def OnViewChange(self, type):
         self.view_type = type
-        self.files_ctrl.DeleteAllItems()
+        self.filesList.DeleteAllItems()
         if type == SMALL_THUMBNAILS or type == DETAIL_THUMBNAILS:
             self.image_list = wx.ImageList(180, 101)
         elif type == MEDIUM_THUMBNAILS:
             self.image_list = wx.ImageList(240, 135)
         elif type == LARGE_THUMBNAILS:
             self.image_list = wx.ImageList(360, 203)
-        self.files_ctrl.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+        self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
         if not self.catalog:
             return
@@ -421,20 +414,20 @@ class MediaManager(wx.Frame):
         if not self.files:
             return
 
-        self.files_ctrl.Hide()
+        self.filesList.Hide()
 
         if type == DETAIL_THUMBNAILS:
-            self.files_ctrl.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
+            self.filesList.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
         else:
-            self.files_ctrl.SetWindowStyleFlag(wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
+            self.filesList.SetWindowStyleFlag(wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
 
         selected = False
         index = 0
         for mf in self.files:
             if type == DETAIL_THUMBNAILS:
-                self.files_ctrl.InsertItem(index, str(mf.id))
-                self.files_ctrl.SetItem(index, 1, mf.filename)
-                self.files_ctrl.SetItem(index, 2, '%dMB' % int(mf.size/1024 / 1024))
+                self.filesList.InsertItem(index, str(mf.id))
+                self.filesList.SetItem(index, 1, mf.filename)
+                self.filesList.SetItem(index, 2, '%dMB' % int(mf.size/1024 / 1024))
                 if mf.duration:
                     hours = int(mf.duration/3600)
                     minutes = int((mf.duration - hours * 3600) / 60)
@@ -443,12 +436,12 @@ class MediaManager(wx.Frame):
                     hours = 0
                     minutes = 0
                     seconds = 0
-                self.files_ctrl.SetItem(index, 3, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
-                self.files_ctrl.SetItem(index, 4, mf.abspath())
+                self.filesList.SetItem(index, 3, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
+                self.filesList.SetItem(index, 4, mf.abspath())
             else:
-                self.files_ctrl.InsertItem(index, mf.filename)
+                self.filesList.InsertItem(index, mf.filename)
 
-            self.files_ctrl.SetItemData(index, index)
+            self.filesList.SetItemData(index, index)
 
             jpg_bytes = mf.get_coverjpg()
             if jpg_bytes:
@@ -459,10 +452,10 @@ class MediaManager(wx.Frame):
             image = self.get_scaled_image(self.image_list, image)
             bmp = wx.Bitmap(image)
             self.image_list.Add(bmp)
-            self.files_ctrl.SetItemImage(index, index)
+            self.filesList.SetItemImage(index, index)
 
             if mf == self.mediafile_selected:
-                self.files_ctrl.Select(index)
+                self.filesList.Select(index)
                 selected = True
 
             index += 1
@@ -471,7 +464,7 @@ class MediaManager(wx.Frame):
             self.rightPanel.set_mediafile(None)
 
         self.OnSortChange(None)
-        self.files_ctrl.Show()
+        self.filesList.Show()
         self.select_mediafile(self.mediafile_selected)
         self.GetSizer().Layout()
         self.Update()
@@ -497,7 +490,7 @@ class MediaManager(wx.Frame):
         self.update_view()
 
     def OnThumbSelect(self, e):
-        self.thumb_sel = self.thumbs_ctrl.GetFirstSelected()
+        self.thumb_sel = self.thumbsList.GetFirstSelected()
         if self.thumb_sel < 0 or not self.mediafile_selected:
             return
 
@@ -511,20 +504,20 @@ class MediaManager(wx.Frame):
 
     def OnThumbRight(self, e):
         self.thumb_item_clicked = e.GetText()
-        self.thumbs_ctrl.PopupMenu(self.thumbRightMenu, e.GetPoint())
+        self.thumbsList.PopupMenu(self.thumbRightMenu, e.GetPoint())
 
     def OnFileSelect(self, e):
-        sel = self.files_ctrl.GetFirstSelected()
+        sel = self.filesList.GetFirstSelected()
         if sel < 0:
             self.rightPanel.set_mediafile(None)
             return
-        sel = self.files_ctrl.GetItemData(sel)
+        sel = self.filesList.GetItemData(sel)
         mf = self.files[sel]
 
         if mf ==self.mediafile_selected:
             return
 
-        self.thumbs_ctrl.DeleteAllItems()
+        self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
         self.mediafile_selected = mf
         self.rightPanel.set_mediafile(mf)
@@ -539,14 +532,14 @@ class MediaManager(wx.Frame):
             hours = int(time/3600)
             minutes = int((time - hours * 3600) / 60)
             seconds = int(time - hours * 3600 - minutes * 60)
-            self.thumbs_ctrl.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
+            self.thumbsList.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
 
             data_stream = io.BytesIO(jpg)
             image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
             image = self.get_scaled_image(self.thumbs_list, image)
             bmp = wx.Bitmap(image)
             self.thumbs_list.Add(bmp)
-            self.thumbs_ctrl.SetItemImage(index, index)
+            self.thumbsList.SetItemImage(index, index)
 
             index += 1
 
@@ -605,6 +598,8 @@ class MediaManager(wx.Frame):
             self.OnSyncCatalog(e)
 
     def OnOpenCatalog(self, e):
+        self.OnCloseCatalog(None)
+
         with wx.FileDialog(self, "Open Catalog", wildcard='catalog files (*.yamm)|*.yamm',
                            style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -619,12 +614,38 @@ class MediaManager(wx.Frame):
             self.OnSyncCatalog(e)
             self.leftPanel.set_mm_window(self)
 
+    def OnCloseCatalog(self, e):
+        if not self.catalog:
+            return
+        self.OnSyncCatalog(None)
+        self.catalog.close_database()
+        self.catalog = None
+        self.leftPanel.set_mm_windows(None)
+        self.rightPanel.set_mediafile(None)
+        self.update_view()
+
     def OnSyncCatalog(self, e):
         if self.cat_thread:
             return
+        self.catalog.kill_thread = False
         self.cat_thread = threading.Thread(target=cat_thread_func, args=(self,))
         self.cat_thread.start()
         self.db_timer.Start(500)
+
+    def OnSyncStop(self, e):
+        if not self.catalog:
+            warn = wx.MesageDialog(None, 'Open Catalog first.', wx.OK|wx.ICON_ERROR)
+            warn.ShowModal()
+            return
+        if not self.cat_thread:
+            return
+        self.catalog.kill_thread = True
+        self.cat_thread.join(timeout=300)
+        if self.cat_thread.is_alive():
+            error = wx.MesageDialog(None, 'Open Catalog first.', wx.OK|wx.ICON_ERROR)
+            error.ShowModal()
+        del self.cat_thread
+
 
     def OnFileRight(self, e):
         pass
@@ -633,8 +654,7 @@ class MediaManager(wx.Frame):
         self.thumbRightMenu.Destroy()
         self.catalog.kill_thread = True
         if self.cat_thread:
-            self.cat_thread.join(timeout=60)
-            del self.cat_thread
+            self.OnSyncStop()
         self.Close()
 
 
