@@ -284,7 +284,7 @@ class MediaManager(wx.Frame):
                     for idx in range(self.filesList.GetItemCount()):
                         data = self.filesList.GetItemData(idx)
                         if data >= mf_i:
-                            self.filesList.SetItemData(data - 1)
+                            self.filesList.SetItemData(idx, data - 1)
                     logging.debug('file removed from view : %s' % mf)
                     del self.files[mf_i]
                     mf_i -= 1
