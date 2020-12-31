@@ -142,25 +142,17 @@ class MediaFile:
             return self.thumbnails
         return None
 
-    def get_coverjpg(self):
+    def get_coverjpg(self, read_db=False):
         if self.cover:
             return self.cover
+        if not read_db:
+            return None
         rows = db_utils.get_cover(self.catalog.db_conn, self.id)
         if rows:
             self.cover = rows[0][0]
             if self.cover:
                 return self.cover
-        if not self.thumbnails:
-            self.load_thumbnails()
-        if not self.thumbnails:
-            return None
-        count = len(self.thumbnails)
-        count = int (count * 0.7)
-        thumbnail = self.thumbnails[count][1]
-        db_utils.del_cover(self.catalog.db_conn, self.id)
-        db_utils.add_cover(self.catalog.db_conn, self.id, thumbnail)
-        self.cover = thumbnail
-        return thumbnail
+        return None
 
     def set_cover_id(self, sel):
         if not self.thumbnails:
