@@ -24,20 +24,9 @@ import threading
 import datetime
 import logging
 
+import settings
 from catalog import *
 from gui_components import *
-
-LARGE_THUMBNAILS = 0
-MEDIUM_THUMBNAILS = 1
-SMALL_THUMBNAILS = 2
-
-FILTER_SORT_FILENAME = 0
-FILTER_SORT_TIME = 1
-FILTER_SORT_LASTPLAY = 2
-FILTER_SORT_DURATION = 3
-FILTER_SORT_PATH = 4
-FILTER_SORT_SIZE = 5
-
 
 mm_global = None
 
@@ -55,7 +44,6 @@ def cat_thread_func(mm):
     cat.sync_database(msg_cb=mm_sync_cb)
     cat.close_database()
     mm.cat_thread = None
-    mm.percent = None
     logging.info('sync thread finished')
 
 
@@ -64,18 +52,19 @@ class MediaManager(wx.Frame):
         super(MediaManager, self).__init__(*args, **kwargs)
 
         self.catalog = None
-        self.view_type = MEDIUM_THUMBNAILS
+        self.view_type = settings.DEF_VIEW_TYPE
         self.resized = False
         self.mediafile_selected = None
         self.cat_thread = None
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
-        self.sort_method = FILTER_SORT_PATH
-        self.sort_ascend = 1
-        self.sort_positive = 1
-
-        self.percent = None
+        self.sort_method = settings.DEF_SORT_METHOD
+        self.sort_ascend = settings.DEF_SORT_ASCEND
+        if self.sort_ascend:
+            self.sort_positive = 1
+        else:
+            self.sort_positive = -1
 
         self.InitUI()
 
@@ -98,7 +87,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnSyncCatalog, catSync)
         self.Bind(wx.EVT_MENU, self.OnSyncStop, catStop)
         self.Bind(wx.EVT_MENU, self.OnCloseCatalog, catClose)
-        self.Bind(wx.EVT_MENU, self.OnQuit, catExit)
+        self.Bind(wx.EVT_MENU, self.OnClose, catExit)
 
         viewMenu = wx.Menu()
         viewSmall = viewMenu.Append(wx.ID_ANY, 'Small Thumbnails')
@@ -143,7 +132,10 @@ class MediaManager(wx.Frame):
         ihbox.Add(self.sortChoice, 0)
         ascend_choices = ('Descend', 'Ascend')
         self.ascendChoice = wx.Choice(self, choices=ascend_choices)
-        self.ascendChoice.SetSelection(self.sort_ascend)
+        if self.sort_ascend:
+            self.ascendChoice.SetSelection(1)
+        else:
+            self.ascendChoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnAscendChange, self.ascendChoice)
         ihbox.Add(self.ascendChoice, 0)
         ivbox.Add(ihbox, 0, wx.EXPAND)
@@ -174,8 +166,14 @@ class MediaManager(wx.Frame):
         hbox.Add(self.rightPanel, 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
 
-        thumbsList = wx.ListCtrl(self, size=(240 * 50, 177),  style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_ALIGN_LEFT|wx.LC_AUTOARRANGE)
-        self.thumbs_list = wx.ImageList(240, 135)
+        w = settings.DEF_THUMBS_HEIGHT * 240 // 135
+        thumbsList = wx.ListCtrl(self,
+                                 size=(w * 50, settings.DEF_THUMBS_HEIGHT + 42),
+                                 style=wx.LC_ICON |
+                                       wx.LC_SINGLE_SEL |
+                                       wx.LC_ALIGN_LEFT |
+                                       wx.LC_AUTOARRANGE)
+        self.thumbs_list = wx.ImageList(w, settings.DEF_THUMBS_HEIGHT)
         thumbsList.SetImageList(self.thumbs_list, wx.IMAGE_LIST_NORMAL)
         vbox.Add(thumbsList, 0, wx.EXPAND)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnThumbSelect, thumbsList)
@@ -194,6 +192,8 @@ class MediaManager(wx.Frame):
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose, self)
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
@@ -220,8 +220,10 @@ class MediaManager(wx.Frame):
 
     def OnAscendChange(self, e):
         if self.ascendChoice.GetSelection() == 0:
+            self.sort_ascend = False
             self.sort_positive = -1
         else:
+            self.sort_ascend = True
             self.sort_positive = 1
         logging.debug('sorting ascend changed to %d' % self.ascendChoice.GetSelection())
         self.OnSortChange(None)
@@ -633,17 +635,25 @@ class MediaManager(wx.Frame):
     def OnFileRight(self, e):
         pass
 
-    def OnQuit(self, e):
-        self.thumbRightMenu.Destroy()
-        self.catalog.kill_thread = True
+    def OnClose(self, e):
+        logging.info('closing application')
+        settings.DEF_VIEW_TYPE = self.view_type
+        settings.DEF_SORT_METHOD = self.sort_method
+        settings.DEF_SORT_ASCEND = self.sort_ascend
+
+        if self.catalog:
+            self.catalog.kill_thread = True
         if self.cat_thread:
             self.OnSyncStop()
-        self.Close()
-
+        self.Destroy()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    load_settings()
+
     app = wx.App()
     mm = MediaManager(None)
     mm.Show()
     app.MainLoop()
+
+    store_settings()

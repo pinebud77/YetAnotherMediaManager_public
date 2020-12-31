@@ -22,6 +22,7 @@ import logging
 import sqlite3
 import datetime
 
+from settings import *
 import media_file
 import database_utils as db_utils
 import file_utils as file_utils
@@ -29,8 +30,6 @@ import file_utils as file_utils
 
 MAJOR_VERSION = 0
 MINOR_VERSION = 1
-DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv', 'flv']
-
 
 def get_abspath(topdir):
     return topdir.abspath
@@ -44,7 +43,7 @@ def get_rel_path(media_file):
 
 
 class Catalog(list):
-    def __init__(self, db_abspath, extension_list=DEFAULT_FILE_EXT):
+    def __init__(self, db_abspath, extension_list=DEF_FILE_EXTENTION):
         self.filepath = db_abspath
         self.topdir_list = []
         self.tag_list = []

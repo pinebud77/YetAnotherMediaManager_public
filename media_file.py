@@ -20,17 +20,10 @@ import os.path
 import logging
 import io
 from PIL import Image
-from moviepy.editor import *
+from moviepy.editor import VideoFileClip
 
+from settings import *
 import database_utils as db_utils
-
-
-MIN_IMAGE_COUNT = 5
-MAX_IMAGE_COUNT = 40
-DEF_THUMBNAIL_WIDTH = 360
-DEF_THUMBNAIL_HEIGHT = 203
-DEF_STREAM_PERIOD = 90
-
 
 class TopDirectory:
     def __init__(self, cat, abspath, comment=None):
@@ -87,7 +80,10 @@ class MediaFile:
         self.lastplay = dt
         db_utils.update_file(self.catalog.db_conn, self)
 
-    def create_thumbnails(self, period=DEF_STREAM_PERIOD, width=DEF_THUMBNAIL_WIDTH, height=DEF_THUMBNAIL_HEIGHT):
+    def create_thumbnails(self,
+                          period=DEF_STREAM_PERIOD,
+                          width=DEF_THUMBNAIL_WIDTH,
+                          height=DEF_THUMBNAIL_HEIGHT):
         fpath = self.abspath()
         try:
             clip = VideoFileClip(fpath)
@@ -95,10 +91,10 @@ class MediaFile:
             print(e)
             return
 
-        if clip.duration < period * MIN_IMAGE_COUNT:
-            period = clip.duration / MIN_IMAGE_COUNT
-        if clip.duration > period * MAX_IMAGE_COUNT:
-            period = clip.duration / MAX_IMAGE_COUNT
+        if clip.duration < period * DEF_MIN_IMAGE_COUNT:
+            period = clip.duration / DEF_MIN_IMAGE_COUNT
+        if clip.duration > period * DEF_MAX_IMAGE_COUNT:
+            period = clip.duration / DEF_MAX_IMAGE_COUNT
 
         duration = int(clip.duration)
         if duration == 0:
