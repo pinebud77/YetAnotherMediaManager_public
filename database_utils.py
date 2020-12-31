@@ -303,12 +303,22 @@ def add_cover(conn, file_id, jpg):
     conn.commit()
 
 
-sql_get_cover = """SELECT *
-                   FROM cover"""
+sql_get_cover_list = """SELECT *
+                        FROM cover;"""
 
-def get_cover(conn):
+def get_cover_list(conn):
     c = conn.cursor()
-    c.execute(sql_get_cover)
+    c.execute(sql_get_cover_list)
+    return c.fetchall()
+
+
+sql_get_cover = """SELECT *
+                   FROM cover
+                   WHERE file_id=?;"""
+
+def get_cover(conn, file_id):
+    c = conn.cursor()
+    c.execute(sql_get_cover, (file_id,))
     return c.fetchall()
 
 

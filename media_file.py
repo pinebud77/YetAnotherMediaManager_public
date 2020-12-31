@@ -86,7 +86,7 @@ class MediaFile:
                           height=DEF_THUMBNAIL_HEIGHT):
         fpath = self.abspath()
         try:
-            clip = VideoFileClip(fpath)
+            clip = VideoFileClip(fpath, audio=False)
         except Exception as e:
             print(e)
             return
@@ -95,14 +95,13 @@ class MediaFile:
             period = clip.duration / DEF_MIN_IMAGE_COUNT
         if clip.duration > period * DEF_MAX_IMAGE_COUNT:
             period = clip.duration / DEF_MAX_IMAGE_COUNT
+        period = int(period)
+        if period == 0:
+            period = 1
 
         duration = int(clip.duration)
         if duration == 0:
             duration = 1
-
-        period = int(period)
-        if period == 0:
-            period = 1
 
         thumbnails = []
         for time in range(0, duration, period):
@@ -144,6 +143,9 @@ class MediaFile:
         return None
 
     def get_coverjpg(self):
+        if self.cover:
+            return self.cover
+        self.cover = db_utils.get_cover(self.catalog.db_conn, self.id)
         if self.cover:
             return self.cover
         if not self.thumbnails:

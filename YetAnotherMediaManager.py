@@ -410,12 +410,11 @@ class MediaManager(wx.Frame):
             return
 
         self.filesList.Hide()
-
         selected = False
         index = 0
         for mf in self.files:
-            self.filesList.InsertItem(index, mf.filename)
-            self.filesList.SetItemData(index, index)
+            list_idx = self.filesList.InsertItem(index, mf.filename)
+            self.filesList.SetItemData(list_idx, index)
 
             jpg_bytes = mf.get_coverjpg()
             if jpg_bytes:
@@ -426,10 +425,10 @@ class MediaManager(wx.Frame):
             image = self.get_scaled_image(self.image_list, image)
             bmp = wx.Bitmap(image)
             self.image_list.Add(bmp)
-            self.filesList.SetItemImage(index, index)
+            self.filesList.SetItemImage(list_idx, index)
 
             if mf == self.mediafile_selected:
-                self.filesList.Select(index)
+                self.filesList.Select(list_idx)
                 selected = True
 
             index += 1
@@ -619,16 +618,16 @@ class MediaManager(wx.Frame):
         self.db_timer.Start(500)
 
     def OnSyncStop(self, e):
+        self.stop_sync()
+
+    def stop_sync(self, timeout=60):
         if not self.catalog:
             return
         if not self.cat_thread:
             return
         self.statusbar.SetStatusText('Trying to stop sync')
         self.catalog.kill_thread = True
-        self.cat_thread.join(timeout=300)
-        if self.cat_thread.is_alive():
-            error = wx.MesageDialog(None, 'Open Catalog first.', wx.OK|wx.ICON_ERROR)
-            error.ShowModal()
+        self.cat_thread.join(timeout=timeout)
         del self.cat_thread
         self.statusbar.SetStatusText('Sync Stopped')
 
@@ -644,7 +643,7 @@ class MediaManager(wx.Frame):
         if self.catalog:
             self.catalog.kill_thread = True
         if self.cat_thread:
-            self.OnSyncStop()
+            self.stop_sync(0)
         self.Destroy()
 
 if __name__ == '__main__':

@@ -118,7 +118,7 @@ class Catalog(list):
 
         #load cover table
         db_utils.create_cover_table(self.db_conn)
-        db_cover_list = db_utils.get_cover(self.db_conn)
+        db_cover_list = db_utils.get_cover_list(self.db_conn)
         for dc in db_cover_list:
             file_id = dc[1]
             jpg = dc[2]
@@ -310,10 +310,14 @@ class Catalog(list):
                 count += 1
                 msg_cb('Adding : %s (%d/%d)' % (mf.filename, count, total))
             mf.create_thumbnails()
+            if mf.thumbnails:
+                cover_jpg = mf.thumbnails[int(len(mf.thumbnails) * 0.7)][1]
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
             mf.save_thumbnails()
+            db_utils.del_cover(self.db_conn, mf.id)
+            db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
             self.append(mf)
             del add_db_list[0]
 
