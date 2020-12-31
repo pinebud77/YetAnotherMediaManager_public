@@ -179,7 +179,7 @@ class Catalog(list):
             mf_i = 0
             while mf_i < len(l):
                 mf = l[mf_i]
-                if not (filename in mf.filename):
+                if not (filename in mf.abspath):
                     del(l[mf_i])
                 else:
                     mf_i += 1

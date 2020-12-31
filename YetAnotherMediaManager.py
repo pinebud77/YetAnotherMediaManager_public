@@ -242,7 +242,7 @@ class MediaManager(wx.Frame):
                 image = wx.Image(360, 203)
             image = self.get_scaled_image(self.image_list, image)
             bmp = wx.Bitmap(image)
-        mf.imagelist_index = self.image_list.Add(bmp)
+            mf.imagelist_index = self.image_list.Add(bmp)
         self.filesList.SetItemImage(list_idx, mf.imagelist_index)
 
         if mf == self.mediafile_selected:
@@ -277,8 +277,10 @@ class MediaManager(wx.Frame):
         total = len(self.files)
         for mf in self.files:
             count += 1
-            self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
+            if count % 100 == 0:
+                self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
             self.add_mediafile(mf)
+        self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')

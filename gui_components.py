@@ -46,7 +46,7 @@ class LeftPanel(wx.Panel):
         vbox.AddSpacer(3)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(wx.StaticText(self, label='Filename : '), 0)
+        hbox.Add(wx.StaticText(self, label='From Path : '), 0)
         self.fileText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnFileFilter, self.fileText)
         hbox.Add(self.fileText, 1, wx.EXPAND)
