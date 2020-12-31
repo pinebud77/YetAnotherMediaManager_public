@@ -118,6 +118,7 @@ class LeftPanel(wx.Panel):
         self.actor_list = []
         self.tag_list = []
         if not mm.catalog:
+            self.update_lists()
             return
         for actor in mm.catalog.actor_list:
             self.actor_list.append(actor)
@@ -292,6 +293,18 @@ class RightPanel(wx.Panel):
 
     def set_property(self):
         if not self.media_file:
+            self.propertyList.InsertItem(0, 'Filename')
+            self.propertyList.SetItem(0, 1, '')
+            self.propertyList.InsertItem(1, 'Path')
+            self.propertyList.SetItem(1, 1, '')
+            self.propertyList.InsertItem(2, 'Stars')
+            self.propertyList.SetItem(2, 1, '')
+            self.propertyList.InsertItem(3, 'Size')
+            self.propertyList.SetItem(3, 1, '')
+            self.propertyList.InsertItem(4, 'Duration')
+            self.propertyList.SetItem(4, 1, '')
+            self.propertyList.InsertItem(5, 'LastPlayed')
+            self.propertyList.SetItem(5, 1, '')
             return
         self.propertyList.DeleteAllItems()
         self.propertyList.InsertItem(0, 'Filename')
@@ -324,6 +337,17 @@ class RightPanel(wx.Panel):
 
     def set_mediafile(self, mf):
         self.media_file = mf
+
+        if not mf:
+            self.actor_list = []
+            self.actor_selected = []
+            self.tag_list = []
+            self.tag_selected = []
+            self.update_actor()
+            self.update_tag()
+            self.set_property()
+            return
+
         self.actor_list = []
         for actor in mf.catalog.actor_list:
             self.actor_list.append(actor)

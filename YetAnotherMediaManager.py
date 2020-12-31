@@ -249,6 +249,8 @@ class MediaManager(wx.Frame):
             return
         self.catalog.close_database()
         self.catalog = None
+        self.leftPanel.set_mm_windows(None)
+        self.rightPanel.set_mediafile(None)
         self.update_view()
 
     def OnDbTimer(self, e):
@@ -285,15 +287,11 @@ class MediaManager(wx.Frame):
                     self.files_ctrl.SetItemImage(index, index)
 
                     self.files.append(mf)
-
-            #if self.percent is not None:
-            #    self.SetProgress(self.percent)
             self.db_updated = False
         if self.cat_thread and self.cat_thread.is_alive():
             self.db_timer.Start(5000)
         else:
             self.db_updated = False
-            #self.HideProgress()
 
     def get_scaled_image(self, il, image):
         il_size = il.GetSize()
@@ -323,9 +321,6 @@ class MediaManager(wx.Frame):
             self.mediafile_selected = None
         else:
             self.files_ctrl.Select(index)
-
-    def update_view(self):
-        self.OnViewChange(self.view_type)
 
     def sort_filename(self, item1, item2):
         mf1 = self.files[item1]
@@ -405,6 +400,9 @@ class MediaManager(wx.Frame):
         else:
             return self.sort_positive
 
+    def update_view(self):
+        self.OnViewChange(self.view_type)
+
     def OnViewChange(self, type):
         self.view_type = type
         self.files_ctrl.DeleteAllItems()
@@ -430,6 +428,7 @@ class MediaManager(wx.Frame):
         else:
             self.files_ctrl.SetWindowStyleFlag(wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
 
+        selected = False
         index = 0
         for mf in self.files:
             if type == DETAIL_THUMBNAILS:
@@ -462,7 +461,14 @@ class MediaManager(wx.Frame):
             self.image_list.Add(bmp)
             self.files_ctrl.SetItemImage(index, index)
 
+            if mf == self.mediafile_selected:
+                self.files_ctrl.Select(index)
+                selected = True
+
             index += 1
+
+        if not selected:
+            self.rightPanel.set_mediafile(None)
 
         self.OnSortChange(None)
         self.files_ctrl.Show()
@@ -510,6 +516,7 @@ class MediaManager(wx.Frame):
     def OnFileSelect(self, e):
         sel = self.files_ctrl.GetFirstSelected()
         if sel < 0:
+            self.rightPanel.set_mediafile(None)
             return
         sel = self.files_ctrl.GetItemData(sel)
         mf = self.files[sel]
