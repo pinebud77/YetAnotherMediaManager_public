@@ -174,7 +174,7 @@ class MediaFile:
         self.size = file_stats.st_size
         self.time = file_stats.st_ctime
         try:
-            clip = VideoFileClip(self.abspath())
+            clip = VideoFileClip(self.abspath(), audio=False)
             self.duration = clip.duration
         except Exception as e:
             print(e)
