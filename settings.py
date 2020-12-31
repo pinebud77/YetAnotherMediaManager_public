@@ -47,6 +47,11 @@ DEF_THUMBNAIL_WIDTH = 360
 DEF_THUMBNAIL_HEIGHT = 203
 DEF_STREAM_PERIOD = 90
 
+#open directives
+DEF_OPEN_EXE = 'C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe'
+DEF_OPEN_FILE = '%s'
+DEF_OPEN_SEEK = '/seek=%d'
+
 def load_settings():
     path = os.path.join(Path.home(), DEF_SETTINGS_FILENAME)
     try:
@@ -65,6 +70,9 @@ def load_settings():
     global DEF_THUMBNAIL_WIDTH
     global DEF_THUMBNAIL_HEIGHT
     global DEF_STREAM_PERIOD
+    global DEF_OPEN_EXE
+    global DEF_OPEN_FILE
+    global DEF_OPEN_SEEK
 
     try:
         DEF_VIEW_TYPE = d['view_type']
@@ -77,10 +85,12 @@ def load_settings():
         DEF_THUMBNAIL_WIDTH = d['thumbnail_width']
         DEF_THUMBNAIL_HEIGHT = d['thumbnail_height']
         DEF_STREAM_PERIOD = d['stream_period']
+        DEF_OPEN_EXE = d['player_path']
+        DEF_OPEN_FILE = d['player_file_opt']
+        DEF_OPEN_SEEK = d['player_seek_opt']
     except:
         return
 
-    print(d)
 
 def store_settings():
     d = dict()
@@ -95,6 +105,9 @@ def store_settings():
     global DEF_THUMBNAIL_WIDTH
     global DEF_THUMBNAIL_HEIGHT
     global DEF_STREAM_PERIOD
+    global DEF_OPEN_EXE
+    global DEF_OPEN_FILE
+    global DEF_OPEN_SEEK
 
     d['view_type'] = DEF_VIEW_TYPE
     d['sort_method'] = DEF_SORT_METHOD
@@ -106,8 +119,9 @@ def store_settings():
     d['thumbnail_width'] = DEF_THUMBNAIL_WIDTH
     d['thumbnail_height'] = DEF_THUMBNAIL_HEIGHT
     d['stream_period'] = DEF_STREAM_PERIOD
-
-    print(d)
+    d['player_path'] = DEF_OPEN_EXE
+    d['player_file_opt'] = DEF_OPEN_FILE
+    d['player_seek_opt'] = DEF_OPEN_SEEK
 
     path = os.path.join(Path.home(), DEF_SETTINGS_FILENAME)
     with open(path, 'w') as json_file:

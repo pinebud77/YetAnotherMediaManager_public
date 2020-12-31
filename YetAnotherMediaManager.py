@@ -239,8 +239,8 @@ class MediaManager(wx.Frame):
             for mf in files:
                 if not (mf in self.files):
                     index = self.filesList.GetItemCount()
-                    self.filesList.InsertItem(index, mf.filename)
-                    self.filesList.SetItemData(index, index)
+                    list_idx = self.filesList.InsertItem(index, mf.filename)
+                    self.filesList.SetItemData(list_idx, index)
                     jpg_bytes = mf.get_coverjpg()
                     if jpg_bytes:
                         data_stream = io.BytesIO(jpg_bytes)
@@ -250,7 +250,7 @@ class MediaManager(wx.Frame):
                     image = self.get_scaled_image(self.image_list, image)
                     bmp = wx.Bitmap(image)
                     self.image_list.Add(bmp)
-                    self.filesList.SetItemImage(index, index)
+                    self.filesList.SetItemImage(list_idx, index)
                     self.files.append(mf)
                     logging.debug('file added to view : %s' % mf)
 
@@ -481,17 +481,17 @@ class MediaManager(wx.Frame):
     def OnThumbDClick(self, e):
         logging.info('openning videoclip : %s' % self.mediafile_selected)
         thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
-        run_list = ('C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe',
-                    '%s'%self.mediafile_selected.abspath(),
-                    '/seek=%d' % thumb[0])
+        run_list = (DEF_OPEN_EXE,
+                    DEF_OPEN_FILE % self.mediafile_selected.abspath(),
+                    DEF_OPEN_SEEK % thumb[0])
         subprocess.Popen(run_list)
         self.mediafile_selected.set_lastplayed(datetime.datetime.now())
         self.rightPanel.set_mediafile(self.mediafile_selected)
 
     def OnFileDClick(self, e):
         logging.info('openning videoclip : %s' % self.mediafile_selected)
-        run_list = ('C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe',
-                    '%s'%self.mediafile_selected.abspath())
+        run_list = (DEF_OPEN_EXE,
+                    DEF_OPEN_FILE % self.mediafile_selected.abspath())
         subprocess.Popen(run_list)
         self.mediafile_selected.set_lastplayed(datetime.datetime.now())
         self.rightPanel.set_mediafile(self.mediafile_selected)
