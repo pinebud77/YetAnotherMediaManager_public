@@ -31,37 +31,6 @@ MAJOR_VERSION = 0
 MINOR_VERSION = 1
 DEFAULT_FILE_EXT = ['mkv', 'avi', 'mp4', 'asf', 'wmv', 'flv']
 
-FILTER_SORT_NONE = 0
-FILTER_SORT_FILENAME = 1
-FILTER_SORT_TIME = 2
-FILTER_SORT_LASTPLAY = 3
-FILTER_SORT_DURATION = 4
-FILTER_SORT_PATH = 5
-FILTER_SORT_SIZE = 6
-
-def filter_sort_filename(mf):
-    return mf.filename
-
-def filter_sort_time(mf):
-    return mf.time
-
-def filter_sort_lastplay(mf):
-    if mf.lastplay:
-        return mf.lastplay
-    return datetime.datetime.min
-
-def filter_sort_duration(mf):
-    if mf.duration:
-        return mf.duration
-    return 0
-
-def filter_sort_path(mf):
-    return mf.abspath()
-
-def filter_sort_size(mf):
-    if mf.size:
-        return mf.size
-    return 0
 
 def get_abspath(topdir):
     return topdir.abspath
@@ -176,7 +145,7 @@ class Catalog(list):
                 return mf
         return None
 
-    def filter(self, sort=FILTER_SORT_NONE, ascend=True, actors=[], tags=[], stars=None):
+    def filter(self, actors=[], tags=[], stars=None):
         l = []
         for mf in self:
             l.append(mf)
@@ -206,19 +175,6 @@ class Catalog(list):
                     del(l[mf_i])
                 else:
                     mf_i += 1
-
-        if sort == FILTER_SORT_FILENAME:
-            l.sort(key=filter_sort_filename, reverse=(not ascend))
-        elif sort == FILTER_SORT_TIME:
-            l.sort(key=filter_sort_time, reverse=(not ascend))
-        elif sort == FILTER_SORT_LASTPLAY:
-            l.sort(key=filter_sort_lastplay, reverse=(not ascend))
-        elif sort == FILTER_SORT_DURATION:
-            l.sort(key=filter_sort_duration, reverse=(not ascend))
-        elif sort == FILTER_SORT_PATH:
-            l.sort(key=filter_sort_path, reverse=(not ascend))
-        elif sort == FILTER_SORT_SIZE:
-            l.sort(key=filter_sort_size, reverse=(not ascend))
 
         return l
 

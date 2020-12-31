@@ -25,12 +25,17 @@ import datetime
 
 from catalog import *
 
-
 LARGE_THUMBNAILS = 0
 MEDIUM_THUMBNAILS = 1
 SMALL_THUMBNAILS = 2
 DETAIL_THUMBNAILS = 3
 
+FILTER_SORT_FILENAME = 0
+FILTER_SORT_TIME = 1
+FILTER_SORT_LASTPLAY = 2
+FILTER_SORT_DURATION = 3
+FILTER_SORT_PATH = 4
+FILTER_SORT_SIZE = 5
 
 class LeftPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
@@ -171,7 +176,10 @@ class RightPanel(wx.Panel):
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        self.propertyList = wx.ListCtrl(self, size=(300, 145), style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_HRULES|wx.LC_VRULES)
+        self.propertyList = wx.ListCtrl(self, size=(300, 145), style=wx.LC_REPORT |
+                                                                     wx.BORDER_SUNKEN |
+                                                                     wx.LC_HRULES |
+                                                                     wx.LC_VRULES)
         self.propertyList.InsertColumn(0, 'Property', width=100)
         self.propertyList.InsertColumn(1, 'Value', width=195)
 
@@ -476,8 +484,9 @@ class MediaManager(wx.Frame):
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
-        self.sort_method = FILTER_SORT_PATH
-        self.sort_ascend = True
+        self.sort_method = FILTER_SORT_FILENAME
+        self.sort_ascend = 1
+        self.sort_positive = 1
 
         self.percent = None
 
@@ -548,22 +557,23 @@ class MediaManager(wx.Frame):
         ihbox.Add(self.progressGauge, 0, wx.EXPAND)
         ihbox.AddStretchSpacer()
         ihbox.Add(wx.StaticText(self, label='sort by '), 1, wx.EXPAND)
-        sort_choices = ('None', 'Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
+        sort_choices = ('Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
         self.sortChoice = wx.Choice(self, choices=sort_choices)
         self.sortChoice.SetSelection(self.sort_method)
         self.Bind(wx.EVT_CHOICE, self.OnSortChange, self.sortChoice)
         ihbox.Add(self.sortChoice, 0)
-        ascend_choices = ('Ascend', 'Descend')
+        ascend_choices = ('Descend', 'Ascend')
         self.ascendChoice = wx.Choice(self, choices=ascend_choices)
-        if self.sort_ascend:
-            self.ascendChoice.SetSelection(0)
-        else:
-            self.ascendChoice.SetSelection(1)
+        self.ascendChoice.SetSelection(self.sort_ascend)
         self.Bind(wx.EVT_CHOICE, self.OnAscendChange, self.ascendChoice)
         ihbox.Add(self.ascendChoice, 0)
         ivbox.Add(ihbox, 0, wx.EXPAND)
 
-        files_ctrl = wx.ListCtrl(self, style=wx.LC_ICON|wx.LC_SINGLE_SEL|wx.BORDER_SUNKEN|wx.LC_AUTOARRANGE)
+        files_ctrl = wx.ListCtrl(self, style=wx.LC_ICON |
+                                             wx.LC_SINGLE_SEL |
+                                             wx.BORDER_SUNKEN |
+                                             wx.LC_AUTOARRANGE |
+                                             wx.LC_SORT_ASCENDING)
         files_ctrl.InsertColumn(0, 'thumbnail', width=360)
         files_ctrl.InsertColumn(1, 'filename', width=200)
         files_ctrl.InsertColumn(2, 'size', width=100)
@@ -623,14 +633,25 @@ class MediaManager(wx.Frame):
 
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
-        self.update_view()
+        if self.sort_method == FILTER_SORT_FILENAME:
+            self.files_ctrl.SortItems(self.sort_filename)
+        elif self.sort_method == FILTER_SORT_TIME:
+            self.files_ctrl.SortItems(self.sort_time)
+        elif self.sort_method == FILTER_SORT_LASTPLAY:
+            self.files_ctrl.SortItems(self.sort_lastplay)
+        elif self.sort_method == FILTER_SORT_DURATION:
+            self.files_ctrl.SortItems(self.sort_duration)
+        elif self.sort_method == FILTER_SORT_PATH:
+            self.files_ctrl.SortItems(self.sort_path)
+        elif self.sort_method == FILTER_SORT_SIZE:
+            self.files_ctrl.SortItems(self.sort_size)
 
     def OnAscendChange(self, e):
-        if self.ascendChoice.GetSelection():
-            self.sort_ascend = False
+        if self.ascendChoice.GetSelection() == 0:
+            self.sort_positive = -1
         else:
-            self.sort_ascend = True
-        self.update_view()
+            self.sort_positive = 1
+        self.OnSortChange(None)
 
     def OnCloseCatalog(self, e):
         if not self.catalog:
@@ -643,14 +664,23 @@ class MediaManager(wx.Frame):
         if self.db_updated:
             self.catalog.reload_files()
 
-            files = self.catalog.filter(sort=self.sort_method,
-                                        ascend=self.sort_ascend,
-                                        actors=self.leftPanel.actor_selected,
+            files = self.catalog.filter(actors=self.leftPanel.actor_selected,
                                         tags=self.leftPanel.tag_selected)
             for mf in files:
+                found = False
+                for actor in mf.actor_list:
+                    if actor in self.leftPanel.actor_list:
+                        found = True
+                for tag in mf.tag_list:
+                    if tag in self.leftPanel.tag_list:
+                        found = True
+                if not found:
+                    return
+
                 if not (mf in self.files):
                     index = self.files_ctrl.GetItemCount()
                     self.files_ctrl.InsertItem(index, mf.filename)
+                    self.files_ctrl.SetItemPtrData(index, mf)
 
                     jpg_bytes = mf.get_coverjpg()
                     if jpg_bytes:
@@ -706,6 +736,84 @@ class MediaManager(wx.Frame):
     def update_view(self):
         self.OnViewChange(self.view_type)
 
+    def sort_filename(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if mf1.filename == mf2.filename:
+            return 0
+        elif mf1.filename < mf2.filename:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
+    def sort_time(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if mf1.time == mf2.time:
+            return 0
+        elif mf1.time < mf2.time:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
+    def sort_lastplay(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if (not mf1.lastplay) and mf2.lastplay:
+            return -self.sort_positive
+        if mf1.lastplay and (not mf2.lastplay):
+            return self.sort_positive
+        if not mf1.lastplay and not mf2.lastplay:
+            return 0
+        if mf1.lastplay == mf2.lastplay:
+            return 0
+        elif mf1.lastplay < mf2.lastplay:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
+    def sort_duration(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if (not mf1.duration) and mf2.duration:
+            return -self.sort_positive
+        if mf1.duration and not (mf2.duration):
+            return self.sort_positive
+        if not mf1.duration and not mf2.duration:
+            return 0
+        if mf1.duration == mf2.duration:
+            return 0
+        elif mf1.duration < mf2.duration:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
+    def sort_path(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if mf1.abspath() == mf2.abspath():
+            return 0
+        elif mf1.abspath() < mf2.abspath():
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
+    def sort_size(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if (not mf1.size) and mf2.size:
+            return -self.sort_positive
+        if mf1.size and (not mf2.size):
+            return self.sort_positive
+        if not mf1.size and not mf2.size:
+            return 0
+        if mf1.size == mf2.size:
+            return 0
+        elif mf1.size < mf2.size:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
     def OnViewChange(self, type):
         self.view_type = type
         self.files_ctrl.DeleteAllItems()
@@ -719,9 +827,7 @@ class MediaManager(wx.Frame):
 
         if not self.catalog:
             return
-        self.files = self.catalog.filter(sort=self.sort_method,
-                                         ascend=self.sort_ascend,
-                                         actors=self.leftPanel.actor_selected,
+        self.files = self.catalog.filter(actors=self.leftPanel.actor_selected,
                                          tags=self.leftPanel.tag_selected)
         if not self.files:
             return
@@ -752,6 +858,8 @@ class MediaManager(wx.Frame):
             else:
                 self.files_ctrl.InsertItem(index, mf.filename)
 
+            self.files_ctrl.SetItemData(index, index)
+
             jpg_bytes = mf.get_coverjpg()
             if jpg_bytes:
                 data_stream = io.BytesIO(jpg_bytes)
@@ -765,8 +873,8 @@ class MediaManager(wx.Frame):
 
             index += 1
 
+        self.OnSortChange(None)
         self.files_ctrl.Show()
-
         self.select_mediafile(self.mediafile_selected)
         self.GetSizer().Layout()
         self.Update()
@@ -798,7 +906,6 @@ class MediaManager(wx.Frame):
 
     def OnThumbDClick(self, e):
         thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
-        print(self.mediafile_selected.abspath())
         run_list = ('C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe',
                     '%s'%self.mediafile_selected.abspath(),
                     '/seek=%d' % thumb[0])
@@ -813,6 +920,7 @@ class MediaManager(wx.Frame):
         sel = self.files_ctrl.GetFirstSelected()
         if sel < 0:
             return
+        sel = self.files_ctrl.GetItemData(sel)
         mf = self.files[sel]
 
         if mf ==self.mediafile_selected:
@@ -891,13 +999,9 @@ class MediaManager(wx.Frame):
             while td_i < len(self.catalog.topdir_list):
                 topdir = self.catalog.topdir_list[td_i]
                 if not (topdir.abspath in new_topdirs):
-                    print('del')
                     self.catalog.del_topdir(topdir.abspath)
                     td_i -= 1
                 td_i += 1
-
-            print(new_topdirs)
-            print(self.catalog.topdir_list)
 
             self.statusbar.SetStatusText('Start Scanning files...')
             self.OnSyncCatalog(e)
