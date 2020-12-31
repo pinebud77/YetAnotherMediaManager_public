@@ -273,14 +273,17 @@ class MediaManager(wx.Frame):
                                          filename=self.leftPanel.file_filter)
 
         self.rightPanel.set_mediafile(None)
+        self.filesList.Hide()
         count = 0
         total = len(self.files)
         for mf in self.files:
             count += 1
-            if count % 100 == 0:
+            if count % 10 == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
+                wx.Yield()
             self.add_mediafile(mf)
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
+        self.filesList.Show()
 
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')
