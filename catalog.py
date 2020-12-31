@@ -145,7 +145,7 @@ class Catalog(list):
                 return mf
         return None
 
-    def filter(self, actors=[], tags=[], stars=None):
+    def filter(self, actors=[], tags=[], filename='', stars=None):
         l = []
         for mf in self:
             l.append(mf)
@@ -172,6 +172,15 @@ class Catalog(list):
                     if tag in mf.tag_list:
                         found = True
                 if not found:
+                    del(l[mf_i])
+                else:
+                    mf_i += 1
+
+        if filename:
+            mf_i = 0
+            while mf_i < len(l):
+                mf = l[mf_i]
+                if not (filename in mf.filename):
                     del(l[mf_i])
                 else:
                     mf_i += 1
@@ -219,9 +228,7 @@ class Catalog(list):
         db_i = 0
         only_ob_list = []
         only_db_list = []
-        while True:
-            if ob_i == len(self.topdir_list) or db_i == len(db_list):
-                break
+        while ob_i < len(self.topdir_list) and db_i < len(db_list):
             if self.topdir_list[ob_i].abspath > db_list[db_i][1]:
                 only_db_list.append(db_list[db_i])
                 db_i += 1
@@ -260,9 +267,7 @@ class Catalog(list):
             db_i = 0
             only_fs_list = []
             only_db_list = []
-            while True:
-                if fs_i == len(fs_list) or db_i == len(db_list):
-                    break
+            while fs_i < len(fs_list) and db_i < len(db_list):
                 if fs_list[fs_i] > db_list[db_i].abspath():
                     only_db_list.append(db_list[db_i])
                     db_i += 1
@@ -327,15 +332,11 @@ class Catalog(list):
         db_file_list = db_utils.get_file_list(self.db_conn)
 
         mf_i = 0
-        while True:
-            if mf_i == len(self):
-                break
+        while mf_i < len(self):
             mf = self[mf_i]
             df_i = 0
             found = False
-            while True:
-                if df_i == len(db_file_list):
-                    break
+            while df_i < len(db_file_list):
                 df = db_file_list[df_i]
                 topdir = self.get_topdir_from_id(df[1])
                 df_abs = os.path.join(topdir.abspath, df[2], df[3])

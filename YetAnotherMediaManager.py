@@ -176,6 +176,7 @@ class MediaManager(wx.Frame):
         self.image_list = wx.ImageList(360, 203)
         filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
         #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
         self.filesList = filesList
 
@@ -251,7 +252,8 @@ class MediaManager(wx.Frame):
             self.catalog.reload_files()
 
             files = self.catalog.filter(actors=self.leftPanel.actor_selected,
-                                        tags=self.leftPanel.tag_selected)
+                                        tags=self.leftPanel.tag_selected,
+                                        filename=self.leftPanel.file_filter)
             for mf in files:
                 if not (mf in self.files):
                     index = self.filesList.GetItemCount()
@@ -420,7 +422,8 @@ class MediaManager(wx.Frame):
         if not self.catalog:
             return
         self.files = self.catalog.filter(actors=self.leftPanel.actor_selected,
-                                         tags=self.leftPanel.tag_selected)
+                                         tags=self.leftPanel.tag_selected,
+                                         filename=self.leftPanel.file_filter)
         if not self.files:
             return
 
@@ -514,6 +517,15 @@ class MediaManager(wx.Frame):
                     '/seek=%d' % thumb[0])
         subprocess.Popen(run_list)
         self.mediafile_selected.set_lastplayed(datetime.datetime.now())
+        self.rightPanel.set_mediafile(self.mediafile_selected)
+
+    def OnFileDClick(self, e):
+        logging.info('openning videoclip : %s' % self.mediafile_selected)
+        run_list = ('C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe',
+                    '%s'%self.mediafile_selected.abspath())
+        subprocess.Popen(run_list)
+        self.mediafile_selected.set_lastplayed(datetime.datetime.now())
+        self.rightPanel.set_mediafile(self.mediafile_selected)
 
     def OnThumbRight(self, e):
         self.thumb_item_clicked = e.GetText()
@@ -634,10 +646,9 @@ class MediaManager(wx.Frame):
     def OnCloseCatalog(self, e):
         if not self.catalog:
             return
-        self.OnSyncCatalog(None)
         self.catalog.close_database()
         self.catalog = None
-        self.leftPanel.set_mm_windows(None)
+        self.leftPanel.set_mm_window(None)
         self.rightPanel.set_mediafile(None)
         self.update_view()
 

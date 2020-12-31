@@ -25,6 +25,7 @@ class LeftPanel(wx.Panel):
 
         self.mm_window = None
 
+        self.file_filter = ''
         self.actor_list = []
         self.actor_selected = []
         self.tag_list = []
@@ -41,7 +42,17 @@ class LeftPanel(wx.Panel):
         self.clearButton = wx.Button(self, label='Clear')
         self.Bind(wx.EVT_BUTTON, self.OnClear, self.clearButton)
         hbox.Add(self.clearButton, 1)
+        vbox.Add(hbox, 0, wx.EXPAND)
+        vbox.AddSpacer(3)
 
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(wx.StaticText(self, label='Filename : '), 0)
+        self.fileText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnFileFilter, self.fileText)
+        hbox.Add(self.fileText, 1, wx.EXPAND)
+        fileSetBtn = wx.Button(self, label='Set')
+        self.Bind(wx.EVT_BUTTON, self.OnFileFilter, fileSetBtn)
+        hbox.Add(fileSetBtn)
         vbox.Add(hbox, 0, wx.EXPAND)
 
         self.actorList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST|wx.LC_ALIGN_TOP)
@@ -54,8 +65,18 @@ class LeftPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnTagSelect, self.tagList)
         vbox.Add(self.tagList, 1, wx.EXPAND)
 
+        self.clearButton.Disable()
+        self.fileText.Disable()
+        self.actorList.Disable()
+        self.tagList.Disable()
+
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
+
+    def OnFileFilter(self, e):
+        filename = self.fileText.GetValue()
+        self.file_filter = filename
+        self.mm_window.update_view()
 
     def OnActorSelect(self, e):
         self.actor_selected = []
@@ -96,6 +117,8 @@ class LeftPanel(wx.Panel):
         self.tag_selected = []
         for n in range(self.tagList.GetItemCount()):
             self.tagList.Select(n, on=0)
+        self.file_filter = ''
+        self.fileText.SetValue('')
         self.mm_window.update_view()
 
     def update_lists(self):
@@ -118,8 +141,12 @@ class LeftPanel(wx.Panel):
 
         self.actor_list = []
         self.tag_list = []
-        if not mm.catalog:
+        if not mm or not mm.catalog:
             self.update_lists()
+            self.clearButton.Disable()
+            self.fileText.Disable()
+            self.actorList.Disable()
+            self.tagList.Disable()
             return
         for actor in mm.catalog.actor_list:
             self.actor_list.append(actor)
@@ -127,6 +154,11 @@ class LeftPanel(wx.Panel):
             self.tag_list.append(tag)
 
         self.update_lists()
+
+        self.clearButton.Enable()
+        self.fileText.Enable()
+        self.actorList.Enable()
+        self.tagList.Enable()
 
     def add_actor(self, actor):
         if actor in self.actor_list:
@@ -186,10 +218,17 @@ class RightPanel(wx.Panel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         ivbox = wx.BoxSizer(wx.VERTICAL)
         ivbox.Add(wx.StaticText(self, label='Actors'), 0)
+        ihbox = wx.BoxSizer(wx.HORIZONTAL)
         self.actorText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnActorAdd, self.actorText)
-        ivbox.Add(self.actorText, 0, wx.EXPAND)
-        self.actorList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
+        ihbox.Add(self.actorText, 1, wx.EXPAND)
+        fileSetBtn = wx.Button(self, size=(40, -1), label='Add')
+        self.Bind(wx.EVT_BUTTON, self.OnActorAdd, fileSetBtn)
+        ihbox.Add(fileSetBtn, 0, wx.EXPAND)
+        ivbox.Add(ihbox)
+        self.actorList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
+                                                                 wx.LC_NO_HEADER |
+                                                                 wx.LC_SINGLE_SEL)
         self.actorList.EnableCheckBoxes()
         self.actorList.InsertColumn(0, 'Icon', width=20)
         self.actorList.InsertColumn(1, 'name', width=120)
@@ -197,12 +236,20 @@ class RightPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnActorUncheck, self.actorList)
         ivbox.Add(self.actorList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
+
         ivbox = wx.BoxSizer(wx.VERTICAL)
         ivbox.Add(wx.StaticText(self, label='Tags'), 0)
+        ihbox = wx.BoxSizer(wx.HORIZONTAL)
         self.tagText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnTagAdd, self.tagText)
-        ivbox.Add(self.tagText, 0, wx.EXPAND)
-        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
+        ihbox.Add(self.tagText, 1, wx.EXPAND)
+        fileSetBtn = wx.Button(self, size=(40, -1), label='Add')
+        self.Bind(wx.EVT_BUTTON, self.OnTagAdd, fileSetBtn)
+        ihbox.Add(fileSetBtn, 0, wx.EXPAND)
+        ivbox.Add(ihbox)
+        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
+                                                               wx.LC_NO_HEADER |
+                                                               wx.LC_SINGLE_SEL)
         self.tagList.EnableCheckBoxes()
         self.tagList.InsertColumn(0, 'Icon', width=20)
         self.tagList.InsertColumn(1, 'name', width=120)
@@ -212,6 +259,12 @@ class RightPanel(wx.Panel):
         hbox.Add(ivbox, 1, wx.EXPAND)
 
         vbox.Add(hbox, 1, wx.EXPAND)
+
+        self.propertyList.Disable()
+        self.actorText.Disable()
+        self.actorList.Disable()
+        self.tagText.Disable()
+        self.tagList.Disable()
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
@@ -347,6 +400,10 @@ class RightPanel(wx.Panel):
             self.update_actor()
             self.update_tag()
             self.set_property()
+            self.actorText.Disable()
+            self.actorList.Disable()
+            self.tagText.Disable()
+            self.tagList.Disable()
             return
 
         self.actor_list = []
@@ -364,6 +421,11 @@ class RightPanel(wx.Panel):
         self.update_actor()
         self.update_tag()
         self.set_property()
+
+        self.actorText.Enable()
+        self.actorList.Enable()
+        self.tagText.Enable()
+        self.tagList.Enable()
 
 class CatalogDialog(wx.Dialog):
     def __init__(self, *args, **kwargs):
