@@ -241,16 +241,17 @@ class MediaManager(wx.Frame):
                     index = self.filesList.GetItemCount()
                     list_idx = self.filesList.InsertItem(index, mf.filename)
                     self.filesList.SetItemData(list_idx, index)
-                    jpg_bytes = mf.get_coverjpg()
-                    if jpg_bytes:
-                        data_stream = io.BytesIO(jpg_bytes)
-                        image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-                    else:
-                        image = wx.Image(360, 203)
-                    image = self.get_scaled_image(self.image_list, image)
-                    bmp = wx.Bitmap(image)
-                    self.image_list.Add(bmp)
-                    self.filesList.SetItemImage(list_idx, index)
+                    if mf.imagelist_index is None:
+                        jpg_bytes = mf.get_coverjpg()
+                        if jpg_bytes:
+                            data_stream = io.BytesIO(jpg_bytes)
+                            image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                        else:
+                            image = wx.Image(360, 203)
+                        image = self.get_scaled_image(self.image_list, image)
+                        bmp = wx.Bitmap(image)
+                        mf.imagelist_index = self.image_list.Add(bmp)
+                    self.filesList.SetItemImage(list_idx, mf.imagelist_index)
                     self.files.append(mf)
                     logging.debug('file added to view : %s' % mf)
 
@@ -391,15 +392,20 @@ class MediaManager(wx.Frame):
 
     def OnViewChange(self, vtype):
         logging.info('view type changed to %d' % vtype)
+        if self.view_type != vtype:
+            for mf in self.catalog:
+                mf.imagelist_index = None
+
+            if vtype == SMALL_THUMBNAILS:
+                self.image_list = wx.ImageList(179, 101)
+            elif vtype == MEDIUM_THUMBNAILS:
+                self.image_list = wx.ImageList(239, 135)
+            elif vtype == LARGE_THUMBNAILS:
+                self.image_list = wx.ImageList(359, 203)
+            self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+
         self.view_type = vtype
         self.filesList.DeleteAllItems()
-        if vtype == SMALL_THUMBNAILS:
-            self.image_list = wx.ImageList(180, 101)
-        elif vtype == MEDIUM_THUMBNAILS:
-            self.image_list = wx.ImageList(240, 135)
-        elif vtype == LARGE_THUMBNAILS:
-            self.image_list = wx.ImageList(360, 203)
-        self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
         if not self.catalog:
             return
@@ -416,16 +422,17 @@ class MediaManager(wx.Frame):
             list_idx = self.filesList.InsertItem(index, mf.filename)
             self.filesList.SetItemData(list_idx, index)
 
-            jpg_bytes = mf.get_coverjpg()
-            if jpg_bytes:
-                data_stream = io.BytesIO(jpg_bytes)
-                image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-            else:
-                image = wx.Image(360, 203)
-            image = self.get_scaled_image(self.image_list, image)
-            bmp = wx.Bitmap(image)
-            self.image_list.Add(bmp)
-            self.filesList.SetItemImage(list_idx, index)
+            if mf.imagelist_index is None:
+                jpg_bytes = mf.get_coverjpg()
+                if jpg_bytes:
+                    data_stream = io.BytesIO(jpg_bytes)
+                    image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                else:
+                    image = wx.Image(360, 203)
+                image = self.get_scaled_image(self.image_list, image)
+                bmp = wx.Bitmap(image)
+                mf.imagelist_index = self.image_list.Add(bmp)
+            self.filesList.SetItemImage(list_idx, mf.imagelist_index)
 
             if mf == self.mediafile_selected:
                 self.filesList.Select(list_idx)
@@ -592,7 +599,7 @@ class MediaManager(wx.Frame):
                     td_i -= 1
                 td_i += 1
 
-            self.statusbar.SetStatusText('Start Scanning files...')
+            self.statusbar.SetStatusText('Start Scanning files (This will take time to check filesystem')
             self.OnSyncCatalog(e)
 
     def OnOpenCatalog(self, e):
@@ -605,6 +612,7 @@ class MediaManager(wx.Frame):
 
             pathname = fileDialog.GetPath()
             self.catalog = Catalog(db_abspath=pathname)
+            self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
             self.catalog.open_database()
             self.update_view()
 

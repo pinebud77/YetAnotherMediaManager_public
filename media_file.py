@@ -65,6 +65,8 @@ class MediaFile:
         self.thumbnails = None
         self.cover = None
 
+        self.imagelist_index = None
+
     def load_dbtuple(self, t):
         self.id = t[0]
         self.topdir = self.catalog.get_topdir_from_id(t[1])
