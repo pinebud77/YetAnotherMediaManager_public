@@ -262,6 +262,8 @@ class Catalog(list):
                     continue
                 db_list.append(mf)
 
+            fs_list.sort()
+            db_list.sort(key=get_abspath)
             fs_i = 0
             db_i = 0
             only_fs_list = []
@@ -280,11 +282,6 @@ class Catalog(list):
                 only_fs_list.extend(fs_list[fs_i:])
             if db_i < len(db_list):
                 only_db_list.extend(db_list[db_i:])
-
-            logging.debug('only on fs:')
-            logging.debug(only_fs_list)
-            logging.debug('only on DB:')
-            logging.debug(only_db_list)
 
             for onlyfs in only_fs_list:
                 if self.kill_thread:
@@ -341,12 +338,11 @@ class Catalog(list):
             found = False
             while df_i < len(db_file_list):
                 df = db_file_list[df_i]
-                topdir = self.get_topdir_from_id(df[1])
-                df_abs = os.path.join(topdir.abspath, df[2], df[3])
-                if mf.abspath == df_abs:
+                if mf.id == df[0]:
                     del(db_file_list[df_i])
                     df_i -= 1
                     found = True
+                    break
                 df_i += 1
             if not found:
                 del(self[mf_i])
