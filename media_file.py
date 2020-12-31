@@ -145,9 +145,11 @@ class MediaFile:
     def get_coverjpg(self):
         if self.cover:
             return self.cover
-        self.cover = db_utils.get_cover(self.catalog.db_conn, self.id)
-        if self.cover:
-            return self.cover
+        rows = db_utils.get_cover(self.catalog.db_conn, self.id)
+        if rows:
+            self.cover = rows[0][0]
+            if self.cover:
+                return self.cover
         if not self.thumbnails:
             self.load_thumbnails()
         if not self.thumbnails:

@@ -312,7 +312,7 @@ def get_cover_list(conn):
     return c.fetchall()
 
 
-sql_get_cover = """SELECT *
+sql_get_cover = """SELECT cover
                    FROM cover
                    WHERE file_id=?;"""
 

@@ -472,7 +472,6 @@ class MediaManager(wx.Frame):
         bmp = wx.Bitmap(image)
         self.image_list.Replace(mf_i, bmp)
         self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
-        #self.update_view()
 
     def OnThumbSelect(self, e):
         self.thumb_sel = self.thumbsList.GetFirstSelected()
