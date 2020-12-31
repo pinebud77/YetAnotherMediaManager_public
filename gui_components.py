@@ -364,7 +364,7 @@ class RightPanel(wx.Panel):
         self.propertyList.InsertItem(0, 'Filename')
         self.propertyList.SetItem(0, 1, self.media_file.filename)
         self.propertyList.InsertItem(1, 'Path')
-        self.propertyList.SetItem(1, 1, self.media_file.abspath())
+        self.propertyList.SetItem(1, 1, self.media_file.abspath)
         self.propertyList.InsertItem(2, 'Stars')
         if self.media_file.stars:
             self.propertyList.SetItem(2, 1, '%d' % self.media_file.stars)

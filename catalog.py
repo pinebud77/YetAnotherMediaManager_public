@@ -267,10 +267,10 @@ class Catalog(list):
             only_fs_list = []
             only_db_list = []
             while fs_i < len(fs_list) and db_i < len(db_list):
-                if fs_list[fs_i] > db_list[db_i].abspath():
+                if fs_list[fs_i] > db_list[db_i].abspath:
                     only_db_list.append(db_list[db_i])
                     db_i += 1
-                elif fs_list[fs_i] < db_list[db_i].abspath():
+                elif fs_list[fs_i] < db_list[db_i].abspath:
                     only_fs_list.append(fs_list[fs_i])
                     fs_i += 1
                 else:
@@ -343,7 +343,7 @@ class Catalog(list):
                 df = db_file_list[df_i]
                 topdir = self.get_topdir_from_id(df[1])
                 df_abs = os.path.join(topdir.abspath, df[2], df[3])
-                if mf.abspath() == df_abs:
+                if mf.abspath == df_abs:
                     del(db_file_list[df_i])
                     df_i -= 1
                     found = True

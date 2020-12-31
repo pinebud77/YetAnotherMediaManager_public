@@ -363,9 +363,9 @@ class MediaManager(wx.Frame):
     def sort_path(self, item1, item2):
         mf1 = self.files[item1]
         mf2 = self.files[item2]
-        if mf1.abspath() == mf2.abspath():
+        if mf1.abspath == mf2.abspath:
             return 0
-        elif mf1.abspath() < mf2.abspath():
+        elif mf1.abspath < mf2.abspath:
             return -self.sort_positive
         else:
             return self.sort_positive
@@ -482,7 +482,7 @@ class MediaManager(wx.Frame):
         logging.info('openning videoclip : %s' % self.mediafile_selected)
         thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
         run_list = (DEF_OPEN_EXE,
-                    DEF_OPEN_FILE % self.mediafile_selected.abspath(),
+                    DEF_OPEN_FILE % self.mediafile_selected.abspath,
                     DEF_OPEN_SEEK % thumb[0])
         subprocess.Popen(run_list)
         self.mediafile_selected.set_lastplayed(datetime.datetime.now())
@@ -491,7 +491,7 @@ class MediaManager(wx.Frame):
     def OnFileDClick(self, e):
         logging.info('openning videoclip : %s' % self.mediafile_selected)
         run_list = (DEF_OPEN_EXE,
-                    DEF_OPEN_FILE % self.mediafile_selected.abspath())
+                    DEF_OPEN_FILE % self.mediafile_selected.abspath)
         subprocess.Popen(run_list)
         self.mediafile_selected.set_lastplayed(datetime.datetime.now())
         self.rightPanel.set_mediafile(self.mediafile_selected)

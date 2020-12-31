@@ -51,6 +51,7 @@ class MediaFile:
         self.topdir = topdir
         self.reldir = reldir
         self.filename = filename
+        self.abspath = os.path.join(topdir.abspath, reldir, filename)
         self.stars = None
         self.size = None
         self.time = None
@@ -84,7 +85,7 @@ class MediaFile:
                           period=DEF_STREAM_PERIOD,
                           width=DEF_THUMBNAIL_WIDTH,
                           height=DEF_THUMBNAIL_HEIGHT):
-        fpath = self.abspath()
+        fpath = self.abspath
         try:
             clip = VideoFileClip(fpath, audio=False)
         except Exception as e:
@@ -125,11 +126,8 @@ class MediaFile:
             return
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
-    def abspath(self):
-        return os.path.abspath(os.path.join(self.topdir.abspath, self.reldir, self.filename))
-
     def load_thumbnails(self):
-        logging.info('loading thumbnail for %s' % self.abspath())
+        logging.info('loading thumbnail for %s' % self.abspath)
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
@@ -170,11 +168,11 @@ class MediaFile:
         self.cover = self.thumbnails[sel][1]
 
     def loadinfo(self):
-        file_stats = os.stat(self.abspath())
+        file_stats = os.stat(self.abspath)
         self.size = file_stats.st_size
         self.time = file_stats.st_ctime
         try:
-            clip = VideoFileClip(self.abspath(), audio=False)
+            clip = VideoFileClip(self.abspath, audio=False)
             self.duration = clip.duration
         except Exception as e:
             print(e)
@@ -216,4 +214,4 @@ class MediaFile:
         pass
 
     def __str__(self):
-        return self.abspath()
+        return self.abspath
