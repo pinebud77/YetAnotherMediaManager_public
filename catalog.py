@@ -243,7 +243,7 @@ class Catalog(list):
         for only_db in only_db_list:
             db_utils.del_topdir(self.db_conn, only_db[1])
 
-    def sync_files(self, file_cb=None):
+    def sync_files(self, msg_cb=None):
         add_db_list = []
         del_db_list = []
 
@@ -302,17 +302,15 @@ class Catalog(list):
                 return
             mf = add_db_list[0]
             mf.loadinfo()
-            logging.info('adding: %s' % mf.abspath())
+            if msg_cb is not None:
+                count += 1
+                msg_cb('Adding %s (%d/%d)' % (mf.filename, count, total))
             mf.create_thumbnails()
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
             mf.save_thumbnails()
             self.append(mf)
-            if file_cb is not None:
-                count += 1
-                percent = int(count / total * 100)
-                file_cb(mf, percent)
             del add_db_list[0]
 
         for mf in del_db_list:
@@ -322,8 +320,8 @@ class Catalog(list):
             self.remove(mf)
             self.db_conn.commit()
 
-        if file_cb is not None:
-            file_cb(None, 100)
+        if msg_cb is not None:
+            msg_cb('Sync Finished')
 
     def reload_files(self):
         db_file_list = db_utils.get_file_list(self.db_conn)
@@ -361,9 +359,9 @@ class Catalog(list):
             mf.thumbnails = None
             self.append(mf)
 
-    def sync_database(self, file_cb=None):
+    def sync_database(self, msg_cb=None):
         self.sync_topdir()
-        self.sync_files(file_cb=file_cb)
+        self.sync_files(msg_cb=msg_cb)
 
     def load_database(self):
         pass
@@ -388,16 +386,13 @@ class Catalog(list):
         pass
 
 
-def print_percent(percent):
-    print(percent)
-
-def print_path(mf):
-    print(mf.abspath())
+def print_msg(msg):
+    print(msg)
 
 if __name__ == '__main__':
     cat = Catalog('test.nmcat')
     cat.open_database()
     cat.del_topdir('Z:\\video\\on_yourmark')
     cat.del_topdir('Z:\\video\\NieA_7')
-    cat.sync_database(file_cb=print_path)
+    cat.sync_database(msg_cb=print_msg)
     cat.close_database()

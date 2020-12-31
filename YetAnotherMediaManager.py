@@ -41,13 +41,9 @@ FILTER_SORT_SIZE = 5
 
 mm_global = None
 
-def mm_sync_cb(newfile, percent):
+def mm_sync_cb(msg):
     global mm_global
-    if newfile:
-        mm_global.statusbar.SetStatusText('File Added: %s (%d%% synced)' % (newfile, percent))
-    else:
-        mm_global.statusbar.SetStatusText('Catalog Sync Finished')
-    mm_global.percent = percent
+    mm_global.statusbar.SetStatusText(msg)
     mm_global.db_updated = True
 
 def cat_thread_func(mm):
@@ -56,7 +52,7 @@ def cat_thread_func(mm):
     mm_global = mm
     cat = Catalog(mm.catalog.filepath)
     cat.open_database()
-    cat.sync_database(file_cb=mm_sync_cb)
+    cat.sync_database(msg_cb=mm_sync_cb)
     cat.close_database()
     mm.cat_thread = None
     mm.percent = None
@@ -253,21 +249,10 @@ class MediaManager(wx.Frame):
             files = self.catalog.filter(actors=self.leftPanel.actor_selected,
                                         tags=self.leftPanel.tag_selected)
             for mf in files:
-                found = False
-                for actor in mf.actor_list:
-                    if actor in self.leftPanel.actor_list:
-                        found = True
-                for tag in mf.tag_list:
-                    if tag in self.leftPanel.tag_list:
-                        found = True
-                if not found:
-                    return
-
                 if not (mf in self.files):
                     index = self.filesList.GetItemCount()
                     self.filesList.InsertItem(index, mf.filename)
-                    self.filesList.SetItemPtrData(index, mf)
-
+                    self.filesList.SetItemData(index, index)
                     jpg_bytes = mf.get_coverjpg()
                     if jpg_bytes:
                         data_stream = io.BytesIO(jpg_bytes)
@@ -280,9 +265,27 @@ class MediaManager(wx.Frame):
                     self.filesList.SetItemImage(index, index)
 
                     self.files.append(mf)
+
+            mf_i = 0
+            while mf_i < len(self.files):
+                mf = self.files[mf_i]
+                if not (mf in files):
+                    for idx in range(self.filesList.GetItemCount()):
+                        data = self.filesList.GetItemData(idx)
+                        if data == mf_i:
+                            self.filesList.DeleteItem(idx)
+                            break
+                    for idx in range(self.filesList.GetItemCount()):
+                        data = self.filesList.GetItemData(idx)
+                        if data >= mf_i:
+                            self.filesList.SetItemData(data - 1)
+                    del self.files[mf_i]
+                    mf_i -= 1
+                mf_i += 1
+
             self.db_updated = False
         if self.cat_thread and self.cat_thread.is_alive():
-            self.db_timer.Start(5000)
+            self.db_timer.Start(3000)
         else:
             self.db_updated = False
 
@@ -634,8 +637,6 @@ class MediaManager(wx.Frame):
 
     def OnSyncStop(self, e):
         if not self.catalog:
-            warn = wx.MesageDialog(None, 'Open Catalog first.', wx.OK|wx.ICON_ERROR)
-            warn.ShowModal()
             return
         if not self.cat_thread:
             return
