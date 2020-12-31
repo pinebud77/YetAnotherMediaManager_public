@@ -30,7 +30,6 @@ from gui_components import *
 LARGE_THUMBNAILS = 0
 MEDIUM_THUMBNAILS = 1
 SMALL_THUMBNAILS = 2
-DETAIL_THUMBNAILS = 3
 
 FILTER_SORT_FILENAME = 0
 FILTER_SORT_TIME = 1
@@ -105,13 +104,11 @@ class MediaManager(wx.Frame):
         viewSmall = viewMenu.Append(wx.ID_ANY, 'Small Thumbnails')
         viewMedium = viewMenu.Append(wx.ID_ANY, 'Medium Thumbnails')
         viewLarge = viewMenu.Append(wx.ID_ANY, 'Large Thumbnails')
-        #viewList = viewMenu.Append(wx.ID_ANY, 'Detailed View')
         menubar.Append(viewMenu, '&View')
 
         self.Bind(wx.EVT_MENU, self.OnViewSmall, viewSmall)
         self.Bind(wx.EVT_MENU, self.OnViewMedium, viewMedium)
         self.Bind(wx.EVT_MENU, self.OnViewLarge, viewLarge)
-        #self.Bind(wx.EVT_MENU, self.OnViewList, viewList)
 
         self.SetMenuBar(menubar)
 
@@ -137,16 +134,8 @@ class MediaManager(wx.Frame):
         ivbox = wx.BoxSizer(wx.VERTICAL)
 
         ihbox = wx.BoxSizer(wx.HORIZONTAL)
-        ihbox.AddSpacer(5)
-        self.progressText = wx.StaticText(self, label='progress : ')
-        ihbox.Add(self.progressText, 0, wx.EXPAND)
-        self.progressGauge = wx.Gauge(self, size = (300, -1), style=wx.GA_HORIZONTAL)
-        self.progressGauge.SetRange(100)
-        self.progressText.Hide()
-        self.progressGauge.Hide()
-        ihbox.Add(self.progressGauge, 0, wx.EXPAND)
         ihbox.AddStretchSpacer()
-        ihbox.Add(wx.StaticText(self, label='sort by '), 1, wx.EXPAND)
+        ihbox.Add(wx.StaticText(self, label='sort by :'), 0, wx.EXPAND)
         sort_choices = ('Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
         self.sortChoice = wx.Choice(self, choices=sort_choices)
         self.sortChoice.SetSelection(self.sort_method)
@@ -212,15 +201,6 @@ class MediaManager(wx.Frame):
         self.SetSize((720, 640))
         self.SetTitle('Yet Another Media Manager')
         self.Centre()
-
-    def SetProgress(self, percent):
-        self.progressText.Show()
-        self.progressGauge.Show()
-        self.progressGauge.SetValue(percent)
-
-    def HideProgress(self):
-        self.progressText.Hide()
-        self.progressGauge.Hide()
 
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
@@ -411,7 +391,7 @@ class MediaManager(wx.Frame):
         logging.info('view type changed to %d' % vtype)
         self.view_type = vtype
         self.filesList.DeleteAllItems()
-        if vtype == SMALL_THUMBNAILS or vtype == DETAIL_THUMBNAILS:
+        if vtype == SMALL_THUMBNAILS:
             self.image_list = wx.ImageList(180, 101)
         elif vtype == MEDIUM_THUMBNAILS:
             self.image_list = wx.ImageList(240, 135)
@@ -429,31 +409,10 @@ class MediaManager(wx.Frame):
 
         self.filesList.Hide()
 
-        if vtype == DETAIL_THUMBNAILS:
-            self.filesList.SetWindowStyleFlag(wx.LC_REPORT|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
-        else:
-            self.filesList.SetWindowStyleFlag(wx.LC_ICON|wx.LC_SINGLE_SEL|wx.LC_AUTOARRANGE)
-
         selected = False
         index = 0
         for mf in self.files:
-            if vtype == DETAIL_THUMBNAILS:
-                self.filesList.InsertItem(index, str(mf.id))
-                self.filesList.SetItem(index, 1, mf.filename)
-                self.filesList.SetItem(index, 2, '%dMB' % int(mf.size/1024 / 1024))
-                if mf.duration:
-                    hours = int(mf.duration/3600)
-                    minutes = int((mf.duration - hours * 3600) / 60)
-                    seconds = mf.duration - hours * 3600 - minutes * 60
-                else:
-                    hours = 0
-                    minutes = 0
-                    seconds = 0
-                self.filesList.SetItem(index, 3, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
-                self.filesList.SetItem(index, 4, mf.abspath())
-            else:
-                self.filesList.InsertItem(index, mf.filename)
-
+            self.filesList.InsertItem(index, mf.filename)
             self.filesList.SetItemData(index, index)
 
             jpg_bytes = mf.get_coverjpg()
@@ -490,9 +449,6 @@ class MediaManager(wx.Frame):
 
     def OnViewLarge(self, e):
         self.OnViewChange(LARGE_THUMBNAILS)
-
-    def OnViewList(self, e):
-        self.OnViewChange(DETAIL_THUMBNAILS)
 
     def OnActor(self, e):
         logging.info('actor image still not implemented')
