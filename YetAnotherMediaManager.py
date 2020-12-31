@@ -230,6 +230,7 @@ class MediaManager(wx.Frame):
 
     def add_mediafile(self, mf):
         index = len(self.files)
+        self.files.append(mf)
         list_idx = self.filesList.InsertItem(index, mf.filename)
         self.filesList.SetItemData(list_idx, index)
 
@@ -249,34 +250,35 @@ class MediaManager(wx.Frame):
             self.filesList.Select(list_idx)
             self.select_mediafile(self.mediafile_selected)
 
-    def OnViewChange(self, vtype):
-        logging.info('view type changed to %d' % vtype)
+    def OnViewChange(self, vtype=None):
         if self.view_type != vtype:
+            if vtype is not None:
+                self.view_type = vtype
+            self.files = []
             for mf in self.catalog:
                 mf.imagelist_index = None
 
-            if vtype == SMALL_THUMBNAILS:
+            if self.view_type == SMALL_THUMBNAILS:
                 self.image_list = wx.ImageList(179, 101)
-            elif vtype == MEDIUM_THUMBNAILS:
+            elif self.view_type == MEDIUM_THUMBNAILS:
                 self.image_list = wx.ImageList(239, 135)
-            elif vtype == LARGE_THUMBNAILS:
+            elif self.view_type == LARGE_THUMBNAILS:
                 self.image_list = wx.ImageList(359, 203)
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
-        self.view_type = vtype
         self.filesList.DeleteAllItems()
 
         if not self.catalog:
             return
-        self.files = self.catalog.filter(actors=self.leftPanel.actor_selected,
+        files = self.catalog.filter(actors=self.leftPanel.actor_selected,
                                          tags=self.leftPanel.tag_selected,
                                          filename=self.leftPanel.file_filter)
 
         self.rightPanel.set_mediafile(None)
         self.filesList.Hide()
         count = 0
-        total = len(self.files)
-        for mf in self.files:
+        total = len(files)
+        for mf in files:
             count += 1
             if count % 10 == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
@@ -430,7 +432,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def update_view(self):
-        self.OnViewChange(self.view_type)
+        self.OnViewChange()
 
     def OnViewSmall(self, e):
         self.OnViewChange(SMALL_THUMBNAILS)
