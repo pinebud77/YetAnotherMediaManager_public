@@ -304,7 +304,7 @@ class Catalog(list):
             mf.loadinfo()
             if msg_cb is not None:
                 count += 1
-                msg_cb('Adding %s (%d/%d)' % (mf.filename, count, total))
+                msg_cb('Adding : %s (%d/%d)' % (mf.filename, count, total))
             mf.create_thumbnails()
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
@@ -363,27 +363,9 @@ class Catalog(list):
         self.sync_topdir()
         self.sync_files(msg_cb=msg_cb)
 
-    def load_database(self):
-        pass
-
     def close_database(self):
         if self.db_conn:
             self.db_conn.close()
-
-    def add_file(self, relpath):
-        pass
-
-    def remove_file(self, relpath):
-        pass
-
-    def sort_files(self):
-        pass
-
-    def get_files_with_tag(self, tag):
-        pass
-
-    def get_files_with_category(self, tag):
-        pass
 
 
 def print_msg(msg):
