@@ -1,25 +1,18 @@
 Yet Another Media Manager
 =========================
 
-This is my personal Media file manager.
+This is Video clip file manager. This is my personal project..
 
-Features Planed
-* File addition in background : done
-* File management through data base : done
-* Video Stream image generation : done
-* Thumbnail generation : done
-* Selecting thumbnail from Video Stream images : done
-* tagging : done
-* Category : required?
-* actor name : done
-* actor image
-* performance optimization
-* adding more GUI icons
-* save/load configuration file : done
+Download
+* https://github.com/pinebud77/YetAnotherMediaManager_public/releases/latest
 
-Implementation details
-* GUI : wxPython
-* sqlite3 : only solution for local DB?
+Features
+* File addition in background through thread
+* File management with database (sqlite3)
+* Video thumbnail image generation
+* Selection of cover image from thumbnails
+* tagging by actor names and tags
+* save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 
 Dependencies
 * moviepy library : pip install movipy
