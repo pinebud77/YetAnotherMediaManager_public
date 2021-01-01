@@ -19,10 +19,9 @@ Dependencies
 * wxpython GUI library : pip install wxpython
 
 Problems
+* bugs!!
 * DB schema is not fixed yet
-* main list control is too slow to update : fixed
-* lag during scaning files
-* should use sort function from wx.ListCtrl : fixed
+* still slow
 
 current picture
 ![current pic](https://github.com/pinebud77/YetAnotherMediaManager_public/blob/main/yamm.png)
