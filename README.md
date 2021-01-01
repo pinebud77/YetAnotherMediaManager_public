@@ -11,8 +11,9 @@ Features
 * File management with database (sqlite3)
 * Video thumbnail image generation
 * Selection of cover image from thumbnails
-* tagging by actor names and tags
-* save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
+* Tagging by actor names and tags
+* Filter by actor or tags
+* Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 
 Dependencies
 * moviepy library : pip install movipy
