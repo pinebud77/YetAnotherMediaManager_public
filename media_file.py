@@ -142,7 +142,7 @@ class MediaFile:
             return self.thumbnails
         return None
 
-    def get_coverjpg(self, read_db=False):
+    def get_coverjpg(self, read_db=True):
         if self.cover:
             return self.cover
         if not read_db:

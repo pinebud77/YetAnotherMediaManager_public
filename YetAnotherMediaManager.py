@@ -247,7 +247,6 @@ class MediaManager(wx.Frame):
         self.filesList.SetItemImage(list_idx, mf.imagelist_index)
 
         if mf == self.mediafile_selected:
-            self.filesList.Select(list_idx)
             self.select_mediafile(self.mediafile_selected)
 
     def OnViewChange(self, vtype=None):
@@ -344,7 +343,6 @@ class MediaManager(wx.Frame):
     def select_mediafile(self, mf):
         if mf is None:
             self.mediafile_selected = None
-
         if mf == self.mediafile_selected:
             return
         logging.debug('media file selected : %s' % mf)
@@ -355,9 +353,34 @@ class MediaManager(wx.Frame):
             index += 1
         if index == len(self.catalog):
             self.mediafile_selected = None
-            self.filesList.Select()
-        else:
-            self.filesList.Select(index)
+            return
+
+        self.filesList.Select(index)
+        self.thumbsList.DeleteAllItems()
+        self.thumbs_list.RemoveAll()
+        self.mediafile_selected = mf
+        self.rightPanel.set_mediafile(mf)
+
+        if not mf.get_thumbnails():
+            return
+        index = 0
+        for tb in mf.get_thumbnails():
+            time = tb[0]
+            jpg = tb[1]
+
+            hours = int(time/3600)
+            minutes = int((time - hours * 3600) / 60)
+            seconds = int(time - hours * 3600 - minutes * 60)
+            self.thumbsList.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
+
+            data_stream = io.BytesIO(jpg)
+            image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+            image = self.get_scaled_image(self.thumbs_list, image)
+            bmp = wx.Bitmap(image)
+            self.thumbs_list.Add(bmp)
+            self.thumbsList.SetItemImage(index, index)
+
+            index += 1
 
     def sort_filename(self, item1, item2):
         mf1 = self.files[item1]
@@ -508,34 +531,7 @@ class MediaManager(wx.Frame):
 
         logging.debug('file selected from view : %s' % mf)
 
-        if mf ==self.mediafile_selected:
-            return
-
-        self.thumbsList.DeleteAllItems()
-        self.thumbs_list.RemoveAll()
-        self.mediafile_selected = mf
-        self.rightPanel.set_mediafile(mf)
-
-        if not mf.get_thumbnails():
-            return
-        index = 0
-        for tb in mf.get_thumbnails():
-            time = tb[0]
-            jpg = tb[1]
-
-            hours = int(time/3600)
-            minutes = int((time - hours * 3600) / 60)
-            seconds = int(time - hours * 3600 - minutes * 60)
-            self.thumbsList.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
-
-            data_stream = io.BytesIO(jpg)
-            image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-            image = self.get_scaled_image(self.thumbs_list, image)
-            bmp = wx.Bitmap(image)
-            self.thumbs_list.Add(bmp)
-            self.thumbsList.SetItemImage(index, index)
-
-            index += 1
+        self.select_mediafile()
 
     def OnNewCatalog(self, e):
         self.OnCloseCatalog(None)
