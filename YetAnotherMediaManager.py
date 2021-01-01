@@ -23,10 +23,19 @@ import io
 import threading
 import datetime
 import logging
+import requests
+import webbrowser
 
 import settings
 from catalog import *
 from gui_components import *
+
+
+VERSION_MAJOR = 0
+VERSION_MINOR = 37
+
+GITHUB_URL = 'https://github.com/pinebud77/YetAnotherMediaManager_public'
+RELEASE_URL = GITHUB_URL + '/releases'
 
 mm_global = None
 
@@ -74,8 +83,10 @@ class MediaManager(wx.Frame):
         catNew = catMenu.Append(wx.ID_ANY, 'New Catalog', 'Create New Catalog')
         catOpen = catMenu.Append(wx.ID_ANY, 'Open Catalog', 'Open Existing Catalog')
         catEdit = catMenu.Append(wx.ID_ANY, 'Edit Catalog', 'Edit Opened Catalog')
+        catMenu.AppendSeparator()
         catSync = catMenu.Append(wx.ID_ANY, 'Sync Catalog files', 'Sync Opened Catalog files')
         catStop = catMenu.Append(wx.ID_ANY, 'Stop Syncing Catalog', 'Stop Syncing Catalog')
+        catMenu.AppendSeparator()
         catClose = catMenu.Append(wx.ID_ANY, 'Close Catalog files', 'Close Opened Catalog files')
         catMenu.AppendSeparator()
         catExit = catMenu.Append(wx.ID_EXIT, 'Quit', 'Quit Application')
@@ -98,6 +109,15 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnViewSmall, viewSmall)
         self.Bind(wx.EVT_MENU, self.OnViewMedium, viewMedium)
         self.Bind(wx.EVT_MENU, self.OnViewLarge, viewLarge)
+
+        helpMenu = wx.Menu()
+        helpPage = helpMenu.Append(wx.ID_ANY, 'Open Github homepage')
+        helpMenu.AppendSeparator()
+        helpAbout = helpMenu.Append(wx.ID_ANY, 'About')
+        menubar.Append(helpMenu, '?')
+
+        self.Bind(wx.EVT_MENU, self.OnHelpPage, helpPage)
+        self.Bind(wx.EVT_MENU, self.OnHelpAbout, helpAbout)
 
         self.SetMenuBar(menubar)
 
@@ -201,6 +221,19 @@ class MediaManager(wx.Frame):
         self.SetSize((720, 640))
         self.SetTitle('Yet Another Media Manager')
         self.Centre()
+
+        r = requests.get(RELEASE_URL + '/latest')
+        if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
+            webbrowser.open(r.url)
+            wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
+
+    def OnHelpPage(self, e):
+        webbrowser.open(GITHUB_URL)
+
+    def OnHelpAbout(self, e):
+        wx.MessageBox('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR),
+                      'About',
+                      wx.OK | wx.ICON_WARNING)
 
     def OnSortChange(self, e):
         self.sort_method = self.sortChoice.GetSelection()
