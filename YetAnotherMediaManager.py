@@ -310,6 +310,8 @@ class MediaManager(wx.Frame):
                         data = self.filesList.GetItemData(idx)
                         if data >= mf_i:
                             self.filesList.SetItemData(idx, data - 1)
+                    if mf == self.mediafile_selected:
+                        self.select_mediafile(None)
                     logging.debug('file removed from view : %s' % mf)
                     del self.files[mf_i]
                     mf_i -= 1
@@ -340,6 +342,11 @@ class MediaManager(wx.Frame):
         return image.Resize(wx.Size(max_width, max_height), wx.Point((max_width-new_width)//2, (max_height-new_height)//2))
 
     def select_mediafile(self, mf):
+        if mf is None:
+            self.mediafile_selected = None
+
+        if mf == self.mediafile_selected:
+            return
         logging.debug('media file selected : %s' % mf)
         index = 0
         for mf_i in self.files:
@@ -348,6 +355,7 @@ class MediaManager(wx.Frame):
             index += 1
         if index == len(self.catalog):
             self.mediafile_selected = None
+            self.filesList.Select()
         else:
             self.filesList.Select(index)
 
