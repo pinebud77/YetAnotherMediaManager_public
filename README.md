@@ -3,7 +3,7 @@ Yet Another Media Manager
 
 This is Video clip file manager. This is my personal project..
 
-Download
+Download Windows executable or tagged version
 * https://github.com/pinebud77/YetAnotherMediaManager_public/releases/latest
 
 Features
