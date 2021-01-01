@@ -254,8 +254,9 @@ class MediaManager(wx.Frame):
             if vtype is not None:
                 self.view_type = vtype
             self.files = []
-            for mf in self.catalog:
-                mf.imagelist_index = None
+            if self.catalog:
+                for mf in self.catalog:
+                    mf.imagelist_index = None
 
             if self.view_type == SMALL_THUMBNAILS:
                 self.image_list = wx.ImageList(179, 101)
@@ -341,11 +342,17 @@ class MediaManager(wx.Frame):
         return image.Resize(wx.Size(max_width, max_height), wx.Point((max_width-new_width)//2, (max_height-new_height)//2))
 
     def select_mediafile(self, mf):
-        if mf is None:
-            self.mediafile_selected = None
         if mf == self.mediafile_selected:
             return
         logging.debug('media file selected : %s' % mf)
+
+        self.thumbsList.DeleteAllItems()
+        self.thumbs_list.RemoveAll()
+        self.mediafile_selected = mf
+        self.rightPanel.set_mediafile(mf)
+        if mf is None:
+            return
+
         index = 0
         for mf_i in self.files:
             if mf == mf_i:
@@ -354,13 +361,6 @@ class MediaManager(wx.Frame):
         if index == len(self.catalog):
             self.mediafile_selected = None
             return
-
-        self.filesList.Select(index)
-        self.thumbsList.DeleteAllItems()
-        self.thumbs_list.RemoveAll()
-        self.mediafile_selected = mf
-        self.rightPanel.set_mediafile(mf)
-
         if not mf.get_thumbnails():
             return
         index = 0
@@ -531,7 +531,7 @@ class MediaManager(wx.Frame):
 
         logging.debug('file selected from view : %s' % mf)
 
-        self.select_mediafile()
+        self.select_mediafile(mf)
 
     def OnNewCatalog(self, e):
         self.OnCloseCatalog(None)
@@ -612,6 +612,7 @@ class MediaManager(wx.Frame):
             return
         self.catalog.close_database()
         self.catalog = None
+        self.select_mediafile(None)
         self.leftPanel.set_mm_window(None)
         self.rightPanel.set_mediafile(None)
         self.update_view()
