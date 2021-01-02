@@ -107,6 +107,8 @@ class MediaFile:
 
         thumbnails = []
         for time in range(0, duration, period):
+            if self.catalog.kill_thread:
+                return
             try:
                 frame = clip.get_frame(time)
             except Exception as e:

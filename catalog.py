@@ -311,14 +311,14 @@ class Catalog(list):
         total = len(add_db_list)
         count = 0
         while add_db_list:
-            if self.kill_thread:
-                return
             mf = add_db_list[0]
             mf.loadinfo()
             if msg_cb is not None:
                 count += 1
                 msg_cb('Adding : %s (%d/%d)' % (mf.filename, count, total))
             mf.create_thumbnails()
+            if self.kill_thread:
+                return
             if mf.thumbnails:
                 cover_jpg = mf.thumbnails[int(len(mf.thumbnails) * 0.7)][1]
             db_utils.add_file_nocommit(self.db_conn, mf)

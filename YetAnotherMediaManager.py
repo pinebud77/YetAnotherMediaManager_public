@@ -40,22 +40,6 @@ RELEASE_URL = GITHUB_URL + '/releases'
 
 mm_global = None
 
-def mm_sync_cb(msg):
-    global mm_global
-    mm_global.statusbar.SetStatusText(msg)
-    mm_global.db_updated = True
-
-def cat_thread_func(mm):
-    logging.info('sync thread started')
-    global mm_global
-    mm_global = mm
-    cat = Catalog(mm.catalog.filepath)
-    cat.open_database()
-    cat.sync_database(msg_cb=mm_sync_cb)
-    cat.close_database()
-    mm.cat_thread = None
-    logging.info('sync thread finished')
-
 
 class MediaManager(wx.Frame):
     def __init__(self, *args, **kwargs):
@@ -75,6 +59,7 @@ class MediaManager(wx.Frame):
             self.sort_positive = 1
         else:
             self.sort_positive = -1
+        self.thread_catalog = None
 
         self.InitUI()
 
@@ -549,8 +534,7 @@ class MediaManager(wx.Frame):
         self.OnViewChange(LARGE_THUMBNAILS)
 
     def OnActor(self, e):
-        logging.info('actor image still not implemented')
-        pass
+        wx.MessageBox('not implemented yet', 'still working on', wx.OK | wx.ICON_ERROR)
 
     def OnCover(self, e):
         mf = self.mediafile_selected
@@ -572,8 +556,6 @@ class MediaManager(wx.Frame):
 
     def OnThumbSelect(self, e):
         self.thumb_sel = self.thumbsList.GetFirstSelected()
-        if self.thumb_sel < 0 or not self.mediafile_selected:
-            return
 
     def OnThumbDClick(self, e):
         logging.info('openning videoclip : %s' % self.mediafile_selected)
@@ -610,6 +592,7 @@ class MediaManager(wx.Frame):
         self.select_mediafile(mf)
 
     def OnNewCatalog(self, e):
+        self.stop_sync()
         self.OnCloseCatalog(None)
 
         with CatalogDialog(self, title="New Catalog") as catDialog:
@@ -634,6 +617,8 @@ class MediaManager(wx.Frame):
         if not self.catalog:
             self.statusbar.SetStatusText('Open or Create Catalog first')
             return
+
+        self.stop_sync()
 
         with CatalogDialog(self, title='Modify Catalog') as catDialog:
             catDialog.catPath.SetLabelText(self.catalog.filepath)
@@ -688,8 +673,9 @@ class MediaManager(wx.Frame):
             self.leftPanel.set_mm_window(self)
 
     def OnCloseCatalog(self, e):
-        if not self.catalog:
+        if self.catalog is None:
             return
+        self.stop_sync()
         self.catalog.close_database()
         self.catalog = None
         self.select_mediafile(None)
@@ -697,26 +683,44 @@ class MediaManager(wx.Frame):
         self.rightPanel.set_mediafile(None)
         self.update_view()
 
+    def mm_sync_cb(self, msg):
+        self.statusbar.SetStatusText(msg)
+        self.db_updated = True
+
+    def cat_thread_func(self):
+        logging.info('sync thread started')
+        self.thread_catalog = Catalog(self.catalog.filepath)
+        self.thread_catalog.open_database()
+        self.thread_catalog.sync_database(msg_cb=self.mm_sync_cb)
+        self.thread_catalog.close_database()
+        self.thread_catalog = None
+        self.cat_thread = None
+        logging.info('sync thread finished')
+
     def OnSyncCatalog(self, e):
-        if self.cat_thread:
+        if self.catalog is None:
             return
-        self.catalog.kill_thread = False
-        self.cat_thread = threading.Thread(target=cat_thread_func, args=(self,))
+        self.cat_thread = threading.Thread(target=self.cat_thread_func)
         self.cat_thread.start()
         self.db_timer.Start(500)
 
     def OnSyncStop(self, e):
         self.stop_sync()
 
-    def stop_sync(self, timeout=60):
-        if not self.catalog:
-            return
-        if not self.cat_thread:
+    def stop_sync(self, timeout=90):
+        if not self.cat_thread or not self.thread_catalog:
             return
         self.statusbar.SetStatusText('Trying to stop sync')
-        self.catalog.kill_thread = True
-        self.cat_thread.join(timeout=timeout)
-        del self.cat_thread
+        self.thread_catalog.kill_thread = True
+        for n in range(int(timeout * 2)):
+            if not self.cat_thread:
+                break
+            if not self.cat_thread.is_alive():
+                break
+            self.cat_thread.join(timeout=0.5)
+            wx.Yield()
+        self.cat_thread = None
+        self.db_timer.Stop()
         self.statusbar.SetStatusText('Sync Stopped')
 
     def OnFileRight(self, e):
