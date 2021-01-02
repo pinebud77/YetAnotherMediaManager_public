@@ -50,7 +50,7 @@ DEF_THUMBNAIL_WIDTH = 360
 DEF_THUMBNAIL_HEIGHT = 203
 DEF_STREAM_PERIOD = 90
 
-#open directives
+#open directives : currently set for PotPlayer
 DEF_OPEN_EXE = 'C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe'
 DEF_OPEN_FILE = '%s'
 DEF_OPEN_SEEK = '/seek=%d'

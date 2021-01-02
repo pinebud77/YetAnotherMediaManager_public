@@ -20,6 +20,7 @@ Planned Features
 * Saving thumbnail to JPG file
 
 Dependencies
+* PotPlayer as media player : https://potplayer.daum.net/
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
 
