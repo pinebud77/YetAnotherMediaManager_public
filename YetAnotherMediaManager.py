@@ -33,7 +33,7 @@ from gui_components import *
 
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 40
+VERSION_MINOR = 41
 
 GITHUB_URL = 'https://github.com/pinebud77/YetAnotherMediaManager_public'
 RELEASE_URL = GITHUB_URL + '/releases'
