@@ -90,7 +90,7 @@ class MediaFile:
         try:
             clip = VideoFileClip(self.abspath, audio=False)
         except Exception as e:
-            print(e)
+            logging.error(e)
             return
 
         if clip.duration < period * DEF_MIN_IMAGE_COUNT:
@@ -112,7 +112,7 @@ class MediaFile:
             try:
                 frame = clip.get_frame(time)
             except Exception as e:
-                print(e)
+                logging.error(e)
                 return
             p = Image.fromarray(frame)
             p.thumbnail((width, height))
@@ -171,7 +171,7 @@ class MediaFile:
             clip = VideoFileClip(self.abspath, audio=False)
             self.duration = clip.duration
         except Exception as e:
-            print(e)
+            logging.error(e)
             return
 
     def add_actor(self, name):

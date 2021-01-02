@@ -20,9 +20,6 @@ import os.path
 import logging
 
 
-logging.basicConfig(level=logging.INFO)
-
-
 def in_extension_list(filename, ext_list):
     for ext in ext_list:
         if filename.lower().endswith(ext):

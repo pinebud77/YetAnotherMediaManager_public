@@ -32,6 +32,7 @@ from catalog import *
 from gui_components import *
 
 
+
 VERSION_MAJOR = 0
 VERSION_MINOR = 41
 
@@ -739,7 +740,8 @@ class MediaManager(wx.Frame):
         self.Destroy()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(filename='YetAnotherMediaManager.log', filemode='w', level=logging.INFO)
+
     load_settings()
 
     app = wx.App()

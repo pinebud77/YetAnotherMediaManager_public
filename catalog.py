@@ -378,15 +378,3 @@ class Catalog(list):
     def close_database(self):
         if self.db_conn:
             self.db_conn.close()
-
-
-def print_msg(msg):
-    print(msg)
-
-if __name__ == '__main__':
-    cat = Catalog('test.nmcat')
-    cat.open_database()
-    cat.del_topdir('Z:\\video\\on_yourmark')
-    cat.del_topdir('Z:\\video\\NieA_7')
-    cat.sync_database(msg_cb=print_msg)
-    cat.close_database()
