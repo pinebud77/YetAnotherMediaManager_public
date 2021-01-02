@@ -80,8 +80,7 @@ class LeftPanel(wx.Panel):
         self.SetAutoLayout(True)
 
     def OnFileFilter(self, e):
-        filename = self.fileText.GetValue()
-        self.file_filter = filename
+        self.file_filter = self.fileText.GetValue()
         self.mm_window.update_view()
 
     def OnActorSelect(self, e):
@@ -149,11 +148,13 @@ class LeftPanel(wx.Panel):
         self.tag_list = []
         if not mm or not mm.catalog:
             self.update_lists()
+
             self.clearButton.Disable()
             self.fileText.Disable()
             self.actorList.Disable()
             self.tagList.Disable()
             return
+
         for actor in mm.catalog.actor_list:
             self.actor_list.append(actor)
         for tag in mm.catalog.tag_list:
@@ -179,6 +180,7 @@ class LeftPanel(wx.Panel):
         self.tag_list.append(tag)
         self.tag_list.sort()
         self.update_lists()
+
 
 class RightPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
