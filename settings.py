@@ -17,6 +17,7 @@
 
 
 import json
+import os
 import os.path
 from pathlib import Path
 
@@ -38,6 +39,8 @@ DEF_VIEW_TYPE = MEDIUM_THUMBNAILS
 DEF_SORT_METHOD = FILTER_SORT_PATH
 DEF_SORT_ASCEND = True
 DEF_THUMBS_HEIGHT = 133
+DEF_SMALL_RESOLUTION = (179, 101)
+DEF_MEDIUM_RESOLUTION = (239, 135)
 
 #mediafile settings
 DEF_FILE_EXTENTION = ('mkv', 'avi', 'mp4', 'asf', 'wmv', 'flv')
@@ -69,6 +72,8 @@ def load_settings():
     global DEF_MAX_IMAGE_COUNT
     global DEF_THUMBNAIL_WIDTH
     global DEF_THUMBNAIL_HEIGHT
+    global DEF_SMALL_RESOLUTION
+    global DEF_MEDIUM_RESOLUTION
     global DEF_STREAM_PERIOD
     global DEF_OPEN_EXE
     global DEF_OPEN_FILE
@@ -84,12 +89,14 @@ def load_settings():
         DEF_MAX_IMAGE_COUNT = d['max_image_count']
         DEF_THUMBNAIL_WIDTH = d['thumbnail_width']
         DEF_THUMBNAIL_HEIGHT = d['thumbnail_height']
+        DEF_SMALL_RESOLUTION = d['small_resolution']
+        DEF_MEDIUM_RESOLUTION = d['medium_resolution']
         DEF_STREAM_PERIOD = d['stream_period']
         DEF_OPEN_EXE = d['player_path']
         DEF_OPEN_FILE = d['player_file_opt']
         DEF_OPEN_SEEK = d['player_seek_opt']
     except:
-        return
+        os.remove(path)
 
 
 def store_settings():
@@ -104,6 +111,8 @@ def store_settings():
     global DEF_MAX_IMAGE_COUNT
     global DEF_THUMBNAIL_WIDTH
     global DEF_THUMBNAIL_HEIGHT
+    global DEF_SMALL_RESOLUTION
+    global DEF_MEDIUM_RESOLUTION
     global DEF_STREAM_PERIOD
     global DEF_OPEN_EXE
     global DEF_OPEN_FILE
@@ -118,6 +127,8 @@ def store_settings():
     d['max_image_count'] = DEF_MAX_IMAGE_COUNT
     d['thumbnail_width'] = DEF_THUMBNAIL_WIDTH
     d['thumbnail_height'] = DEF_THUMBNAIL_HEIGHT
+    d['small_resolution'] = DEF_SMALL_RESOLUTION
+    d['medium_resolution'] = DEF_MEDIUM_RESOLUTION
     d['stream_period'] = DEF_STREAM_PERIOD
     d['player_path'] = DEF_OPEN_EXE
     d['player_file_opt'] = DEF_OPEN_FILE

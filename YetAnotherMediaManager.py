@@ -201,11 +201,11 @@ class MediaManager(wx.Frame):
         hbox.Add(ivbox, 1, wx.EXPAND)
 
         if self.view_type == SMALL_THUMBNAILS:
-            self.image_list = wx.ImageList(179, 101)
+            self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
         elif self.view_type == MEDIUM_THUMBNAILS:
-            self.image_list = wx.ImageList(239, 135)
+            self.image_list = wx.ImageList(DEF_MEDIUM_RESOLUTION[0], DEF_MEDIUM_RESOLUTION[1])
         elif self.view_type == LARGE_THUMBNAILS:
-            self.image_list = wx.ImageList(359, 203)
+            self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
         filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
@@ -335,11 +335,11 @@ class MediaManager(wx.Frame):
                     mf.imagelist_index = None
 
             if self.view_type == SMALL_THUMBNAILS:
-                self.image_list = wx.ImageList(179, 101)
+                self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
             elif self.view_type == MEDIUM_THUMBNAILS:
-                self.image_list = wx.ImageList(239, 135)
+                self.image_list = wx.ImageList(DEF_MEDIUM_RESOLUTION[0], DEF_MEDIUM_RESOLUTION[1])
             elif self.view_type == LARGE_THUMBNAILS:
-                self.image_list = wx.ImageList(359, 203)
+                self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
         self.filesList.DeleteAllItems()
