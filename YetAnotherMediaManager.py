@@ -140,10 +140,10 @@ class MediaManager(wx.Frame):
         tbMedium = tb.AddTool(wx.ID_ANY, 'Medium file list', self.get_toolbar_bitmap(icons.file_medium))
         tbLarge = tb.AddTool(wx.ID_ANY, 'Large file list', self.get_toolbar_bitmap(icons.file_large))
         tb.AddSeparator()
-        tbExit = tb.AddTool(wx.ID_ANY, 'Exit Application', self.get_toolbar_bitmap(icons.app_exit))
-        tb.AddSeparator()
         tbHome = tb.AddTool(wx.ID_ANY, 'Open Homepage', self.get_toolbar_bitmap(icons.help_home))
         tbAbout = tb.AddTool(wx.ID_ANY, 'About this Application', self.get_toolbar_bitmap(icons.help_about))
+        tb.AddSeparator()
+        tbExit = tb.AddTool(wx.ID_ANY, 'Exit Application', self.get_toolbar_bitmap(icons.app_exit))
 
         tb.Realize()
         self.Bind(wx.EVT_TOOL, self.OnNewCatalog, tbNew)
@@ -155,9 +155,9 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_TOOL, self.OnViewSmall, tbSmall)
         self.Bind(wx.EVT_TOOL, self.OnViewMedium, tbMedium)
         self.Bind(wx.EVT_TOOL, self.OnViewLarge, tbLarge)
-        self.Bind(wx.EVT_TOOL, self.OnClose, tbExit)
-        self.Bind(wx.EVT_TOOL, self.OnHelpPage, tbHome)
         self.Bind(wx.EVT_TOOL, self.OnHelpAbout, tbAbout)
+        self.Bind(wx.EVT_TOOL, self.OnHelpPage, tbHome)
+        self.Bind(wx.EVT_TOOL, self.OnClose, tbExit)
 
         vbox.Add(tb, 0, flag=wx.EXPAND)
 
@@ -200,7 +200,12 @@ class MediaManager(wx.Frame):
         ivbox.Add(filesList, 1, flag=wx.ALL|wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
-        self.image_list = wx.ImageList(360, 203)
+        if self.view_type == SMALL_THUMBNAILS:
+            self.image_list = wx.ImageList(179, 101)
+        elif self.view_type == MEDIUM_THUMBNAILS:
+            self.image_list = wx.ImageList(239, 135)
+        elif self.view_type == LARGE_THUMBNAILS:
+            self.image_list = wx.ImageList(359, 203)
         filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
@@ -250,8 +255,11 @@ class MediaManager(wx.Frame):
 
         r = requests.get(RELEASE_URL + '/latest')
         if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
-            webbrowser.open(r.url)
-            wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
+            try:
+                webbrowser.open(r.url)
+                wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
+            except:
+                pass
 
     def get_toolbar_bitmap(self, bimg):
         dstream = io.BytesIO(bimg)
@@ -260,7 +268,10 @@ class MediaManager(wx.Frame):
         return wx.Bitmap(image)
 
     def OnHelpPage(self, e):
-        webbrowser.open(GITHUB_URL)
+        try:
+            webbrowser.open(GITHUB_URL)
+        except:
+            pass
 
     def OnHelpAbout(self, e):
         wx.MessageBox('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR),
@@ -606,6 +617,10 @@ class MediaManager(wx.Frame):
                 return
 
             abspath = os.path.abspath(catDialog.catPath.GetLabelText())
+            try:
+                os.remove(abspath)
+            except:
+                pass
             self.catalog = Catalog(db_abspath=abspath)
             self.catalog.open_database()
 
