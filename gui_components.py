@@ -17,6 +17,9 @@
 
 import wx
 import os
+import io
+
+import icons
 
 
 class LeftPanel(wx.Panel):
@@ -39,7 +42,7 @@ class LeftPanel(wx.Panel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(wx.StaticText(self, label='Filters'), 0)
         hbox.AddStretchSpacer()
-        self.clearButton = wx.Button(self, label='Clear')
+        self.clearButton = wx.Button(self, label='Clear Filters')
         self.Bind(wx.EVT_BUTTON, self.OnClear, self.clearButton)
         hbox.Add(self.clearButton, 1)
         vbox.Add(hbox, 0, wx.EXPAND)
@@ -50,7 +53,10 @@ class LeftPanel(wx.Panel):
         self.fileText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnFileFilter, self.fileText)
         hbox.Add(self.fileText, 1, wx.EXPAND)
-        fileSetBtn = wx.Button(self, label='Set')
+        dstream = io.BytesIO(icons.filter_button)
+        image = wx.Image(dstream, type=wx.BITMAP_TYPE_PNG)
+        image.Rescale(16, 16)
+        fileSetBtn = wx.BitmapButton(self, bitmap=wx.Bitmap(image))
         self.Bind(wx.EVT_BUTTON, self.OnFileFilter, fileSetBtn)
         hbox.Add(fileSetBtn)
         vbox.Add(hbox, 0, wx.EXPAND)
@@ -222,7 +228,10 @@ class RightPanel(wx.Panel):
         self.actorText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnActorAdd, self.actorText)
         ihbox.Add(self.actorText, 1, wx.EXPAND)
-        fileSetBtn = wx.Button(self, size=(40, -1), label='Add')
+        dstream = io.BytesIO(icons.add_button)
+        image = wx.Image(dstream, type=wx.BITMAP_TYPE_PNG)
+        image.Rescale(14, 14)
+        fileSetBtn = wx.BitmapButton(self, bitmap=wx.Bitmap(image))
         self.Bind(wx.EVT_BUTTON, self.OnActorAdd, fileSetBtn)
         ihbox.Add(fileSetBtn, 0, wx.EXPAND)
         ivbox.Add(ihbox)
@@ -243,7 +252,10 @@ class RightPanel(wx.Panel):
         self.tagText = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnTagAdd, self.tagText)
         ihbox.Add(self.tagText, 1, wx.EXPAND)
-        fileSetBtn = wx.Button(self, size=(40, -1), label='Add')
+        dstream = io.BytesIO(icons.add_button)
+        image = wx.Image(dstream, type=wx.BITMAP_TYPE_PNG)
+        image.Rescale(14, 14)
+        fileSetBtn = wx.BitmapButton(self, bitmap=wx.Bitmap(image))
         self.Bind(wx.EVT_BUTTON, self.OnTagAdd, fileSetBtn)
         ihbox.Add(fileSetBtn, 0, wx.EXPAND)
         ivbox.Add(ihbox)

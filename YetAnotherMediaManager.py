@@ -27,12 +27,13 @@ import requests
 import webbrowser
 
 import settings
+import icons
 from catalog import *
 from gui_components import *
 
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 37
+VERSION_MINOR = 40
 
 GITHUB_URL = 'https://github.com/pinebud77/YetAnotherMediaManager_public'
 RELEASE_URL = GITHUB_URL + '/releases'
@@ -78,6 +79,10 @@ class MediaManager(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
+        dummyPanel = wx.Panel(self)
+        dummyPanel.Hide()
+        self.SetBackgroundColour(dummyPanel.GetBackgroundColour())
+
         menubar = wx.MenuBar()
         catMenu = wx.Menu()
         catNew = catMenu.Append(wx.ID_ANY, 'New Catalog', 'Create New Catalog')
@@ -124,15 +129,36 @@ class MediaManager(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         tb = wx.ToolBar(self, -1)
-        tbNew = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_NEW))
-        tbOpen = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN))
-        tbEdit = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE_AS))
-        tbClose = tb.AddTool(wx.ID_ANY, '', wx.ArtProvider.GetBitmap(wx.ART_CLOSE))
+        tbNew = tb.AddTool(wx.ID_ANY, 'New', self.get_toolbar_bitmap(icons.cat_new))
+        tbOpen = tb.AddTool(wx.ID_ANY, 'Open', self.get_toolbar_bitmap(icons.cat_open))
+        tbEdit = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_edit))
+        tbSync = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_sync))
+        tbStop = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_stop))
+        tbClose = tb.AddTool(wx.ID_ANY, 'Close', self.get_toolbar_bitmap(icons.cat_close))
+        tb.AddSeparator()
+        tbSmall = tb.AddTool(wx.ID_ANY, 'Small file list', self.get_toolbar_bitmap(icons.file_small))
+        tbMedium = tb.AddTool(wx.ID_ANY, 'Medium file list', self.get_toolbar_bitmap(icons.file_medium))
+        tbLarge = tb.AddTool(wx.ID_ANY, 'Large file list', self.get_toolbar_bitmap(icons.file_large))
+        tb.AddSeparator()
+        tbExit = tb.AddTool(wx.ID_ANY, 'Exit Application', self.get_toolbar_bitmap(icons.app_exit))
+        tb.AddSeparator()
+        tbHome = tb.AddTool(wx.ID_ANY, 'Open Homepage', self.get_toolbar_bitmap(icons.help_home))
+        tbAbout = tb.AddTool(wx.ID_ANY, 'About this Application', self.get_toolbar_bitmap(icons.help_about))
+
         tb.Realize()
         self.Bind(wx.EVT_TOOL, self.OnNewCatalog, tbNew)
         self.Bind(wx.EVT_TOOL, self.OnOpenCatalog, tbOpen)
         self.Bind(wx.EVT_TOOL, self.OnEditCatalog, tbEdit)
+        self.Bind(wx.EVT_TOOL, self.OnSyncCatalog, tbSync)
+        self.Bind(wx.EVT_TOOL, self.OnSyncStop, tbStop)
         self.Bind(wx.EVT_TOOL, self.OnCloseCatalog, tbClose)
+        self.Bind(wx.EVT_TOOL, self.OnViewSmall, tbSmall)
+        self.Bind(wx.EVT_TOOL, self.OnViewMedium, tbMedium)
+        self.Bind(wx.EVT_TOOL, self.OnViewLarge, tbLarge)
+        self.Bind(wx.EVT_TOOL, self.OnClose, tbExit)
+        self.Bind(wx.EVT_TOOL, self.OnHelpPage, tbHome)
+        self.Bind(wx.EVT_TOOL, self.OnHelpAbout, tbAbout)
+
         vbox.Add(tb, 0, flag=wx.EXPAND)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -226,6 +252,12 @@ class MediaManager(wx.Frame):
         if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
             webbrowser.open(r.url)
             wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
+
+    def get_toolbar_bitmap(self, bimg):
+        dstream = io.BytesIO(bimg)
+        image = wx.Image(dstream, type=wx.BITMAP_TYPE_PNG)
+        image.Rescale(24, 24)
+        return wx.Bitmap(image)
 
     def OnHelpPage(self, e):
         webbrowser.open(GITHUB_URL)
