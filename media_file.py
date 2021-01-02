@@ -16,9 +16,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import io
 import os.path
 import logging
-import io
 from PIL import Image
 from moviepy.editor import VideoFileClip
 
@@ -29,7 +29,7 @@ class TopDirectory:
     def __init__(self, cat, abspath, comment=None):
         self.catalog = cat
         self.id = -1
-        self.abspath = abspath
+        self.abspath = os.path.abspath(abspath)
         self.comment = comment
 
     def load_dbtuple(self, t):
@@ -51,7 +51,6 @@ class MediaFile:
         self.topdir = topdir
         self.reldir = reldir
         self.filename = filename
-        self.abspath = os.path.join(topdir.abspath, reldir, filename)
         self.stars = None
         self.size = None
         self.time = None
@@ -65,6 +64,7 @@ class MediaFile:
         self.thumbnails = None
         self.cover = None
 
+        self.abspath = os.path.join(topdir.abspath, reldir, filename)
         self.imagelist_index = None
 
     def load_dbtuple(self, t):
@@ -87,9 +87,8 @@ class MediaFile:
                           period=DEF_STREAM_PERIOD,
                           width=DEF_THUMBNAIL_WIDTH,
                           height=DEF_THUMBNAIL_HEIGHT):
-        fpath = self.abspath
         try:
-            clip = VideoFileClip(fpath, audio=False)
+            clip = VideoFileClip(self.abspath, audio=False)
         except Exception as e:
             print(e)
             return
@@ -126,6 +125,7 @@ class MediaFile:
     def save_thumbnails(self):
         if not self.thumbnails:
             return
+        #db_utils.del_thumbnails(self.catalog.db_conn, self.id)
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def load_thumbnails(self):
@@ -197,15 +197,6 @@ class MediaFile:
             return
         db_utils.del_tag(self.catalog.db_conn, tag, self.id)
         self.tag_list.remove(tag)
-
-    def set_category(self, category):
-        pass
-
-    def move_relpath(self, new_path):
-        pass
-
-    def delete(self):
-        pass
 
     def __str__(self):
         return self.abspath

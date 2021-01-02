@@ -186,7 +186,6 @@ class Catalog(list):
 
         return l
 
-
     def get_topdir_from_id(self, topdir_id):
         for topdir in self.topdir_list:
             if topdir.id == topdir_id:
@@ -203,6 +202,19 @@ class Catalog(list):
         topdir = self.get_topdir_from_abspath(abspath)
         if topdir:
             return
+
+        for self_td in self.topdir_list:
+            if self_td.abspath in abspath:
+                logging.info("subdirectory of %s : don't add" % self_td.abspath)
+                return
+        td_i = 0
+        while td_i < len(self.topdir_list):
+            self_td = self.topdir_list[td_i]
+            if abspath in self_td.abspath:
+                logging.info('removing %s because it is subdirectory of %s' % (self_td.abspath, abspath))
+                del(self.topdir_list[td_i])
+                td_i -= 1
+            td_i += 1
 
         topdir = media_file.TopDirectory(self, abspath, comment)
         if (topdir):
@@ -254,7 +266,7 @@ class Catalog(list):
         del_db_list = []
 
         for topdir in self.topdir_list:
-            logging.info('processing %s' % topdir)
+            msg_cb('processing %s' % topdir)
             fs_list = file_utils.get_topdir_filelist(topdir.abspath, self.extension_list)
             db_list = []
             for mf in self:

@@ -269,6 +269,16 @@ def get_thumbnails(conn, file_id):
     return rows
 
 
+sql_del_thumbnails = """DELETE FROM thumbnail
+                        WHERE file_id=?:
+                     """
+
+def del_thumbnails(conn, file_id):
+    c = conn.cursor()
+    c.execute(sql_del_thumbnails, (file_id,))
+    conn.commit()
+
+
 sql_create_cover_table = """CREATE TABLE IF NOT EXISTS cover (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 file_id INTEGER UNIQUE,

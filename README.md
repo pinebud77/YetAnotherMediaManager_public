@@ -15,6 +15,10 @@ Features
 * Filter by actor or tags
 * Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 
+Planned Features
+* Creating GIFs from thumbnails
+* Saving thumbnail to JPG file
+
 Dependencies
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
