@@ -10,7 +10,6 @@ from pyunpack import Archive
 
 from settings import *
 from catalog import Catalog
-from MediaManager import MediaManager
 
 
 def check_ffmpeg():
@@ -37,6 +36,7 @@ def wmain(yamm_file=None):
     load_settings()
 
     app = wx.App()
+    from MediaManager import MediaManager
     mm = MediaManager(None)
     mm.open_catalog(yamm_file)
     mm.Show()
