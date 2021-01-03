@@ -44,6 +44,7 @@ Problems
 * still slow
 
 Rasberry PI setup guide (only command line tried)
+* of no use currently because the path difference among OS
 ```
 $ sudo su
 # apt update
