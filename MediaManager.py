@@ -320,7 +320,8 @@ class MediaManager(wx.Frame):
         self.filesList.SetItemImage(list_idx, mf.imagelist_index)
 
         if mf == self.mediafile_selected:
-            self.select_mediafile(self.mediafile_selected)
+            self.select_mediafile(None)
+            self.select_mediafile(mf)
 
     def OnViewChange(self, vtype=None):
         if self.view_type != vtype:
@@ -414,11 +415,11 @@ class MediaManager(wx.Frame):
         return image.Resize(wx.Size(max_width, max_height), wx.Point((max_width-new_width)//2, (max_height-new_height)//2))
 
     def select_mediafile(self, mf):
-        self.rightPanel.set_mediafile(mf)
         if mf == self.mediafile_selected:
             return
         logging.debug('media file selected : %s' % mf)
 
+        self.rightPanel.set_mediafile(mf)
         self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
         self.mediafile_selected = mf
@@ -610,13 +611,14 @@ class MediaManager(wx.Frame):
     def OnFileSelect(self, e):
         sel = self.filesList.GetFirstSelected()
         if sel < 0:
-            self.rightPanel.set_mediafile(None)
+            self.select_mediafile(None)
             return
         sel = self.filesList.GetItemData(sel)
         mf = self.files[sel]
 
         logging.debug('file selected from view : %s' % mf)
 
+        self.select_mediafile(None)
         self.select_mediafile(mf)
 
     def OnNewCatalog(self, e):
