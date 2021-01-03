@@ -685,6 +685,16 @@ class MediaManager(wx.Frame):
             self.statusbar.SetStatusText('Start Scanning files (This will take time to check filesystem')
             self.OnSyncCatalog(e)
 
+    def open_catalog(self, yamm_file):
+        yamm_file = os.path.abspath(yamm_file)
+        self.catalog = Catalog(db_abspath=yamm_file)
+        self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
+        self.catalog.open_database()
+        self.update_view()
+        self.statusbar.SetStatusText('Start Scanning files...')
+        self.OnSyncCatalog(None)
+        self.leftPanel.set_mm_window(self)
+
     def OnOpenCatalog(self, e):
         self.OnCloseCatalog(None)
 
@@ -694,14 +704,7 @@ class MediaManager(wx.Frame):
                 return
 
             pathname = fileDialog.GetPath()
-            self.catalog = Catalog(db_abspath=pathname)
-            self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
-            self.catalog.open_database()
-            self.update_view()
-
-            self.statusbar.SetStatusText('Start Scanning files...')
-            self.OnSyncCatalog(e)
-            self.leftPanel.set_mm_window(self)
+            self.open_catalog(pathname)
 
     def OnCloseCatalog(self, e):
         if self.catalog is None:
