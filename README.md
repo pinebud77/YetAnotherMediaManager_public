@@ -18,9 +18,12 @@ Features
 * Command-line interface for indexing
 
 Command Line Arguments
+* -h (--help) : print usage
 * -c (--create=) : create yamm catalog file
 * -a (--adddir=) : add directory when creating yamm catalog
 * -s (--sync=) : sync yamm catalog file
+* -d (--debug) : print debug messages
+* -q (--quiet) : print no message
 
 Planned Features
 * Platform Independent code
