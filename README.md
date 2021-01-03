@@ -49,7 +49,6 @@ $ sudo su
 # apt update
 # apt install git python3 python3-pip ffmpeg libatlas-base-dev p7zip
 # pip3 install moviepy pyunpack patool
-# pip3 intsall numpy=1.19.3
 # git clone https://github.com/pinebud77/YetAnotherMediaManager_public.git
 # cd YetAnotherMediaManager_public
 # python3 yamm.py -c /mnt/backup/test.yamm -a /mnt/backup/video/
