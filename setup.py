@@ -1,7 +1,7 @@
 from distutils.core import setup
 import py2exe
 
-setup(windows=['yamm.py'],
+setup(console=['yamm.py'],
       options = {
           'py2exe': {
               'includes':['appdirs',
@@ -14,9 +14,9 @@ setup(windows=['yamm.py'],
                          'tkinter',
                           ],
               #'bundle_files': 1,
-              #'compressed': True,
+              'compressed': True,
               'dist_dir': 'YetAnotherMediaManager'
           },
       },
-      #zipfile = None,
+      zipfile = None,
       )

@@ -14,10 +14,11 @@ Features
 * Tagging by actor names and tags
 * Filter by actor or tags
 * Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
+* Saving thumbnail to JPG file
 
 Planned Features
 * Creating GIFs from thumbnails
-* Saving thumbnail to JPG file
+* File deletion
 
 Dependencies
 * PotPlayer as media player : https://potplayer.daum.net/

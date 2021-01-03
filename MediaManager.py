@@ -27,7 +27,6 @@ import requests
 import webbrowser
 import tempfile
 import urllib.request
-from pyunpack import Archive
 
 import settings
 import icons
@@ -225,10 +224,12 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnDbTimer)
 
         self.thumbRightMenu = wx.Menu()
-        menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set As Actor Image')
-        menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set As Cover Image')
+        menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
+        menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Cover Image')
+        menuThumbSave = self.thumbRightMenu.Append(wx.ID_ANY, 'Save as JPG file')
         self.Bind(wx.EVT_MENU, self.OnActor, menuActor)
         self.Bind(wx.EVT_MENU, self.OnCover, menuCover)
+        self.Bind(wx.EVT_MENU, self.OnThumbSave, menuThumbSave)
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
@@ -245,8 +246,8 @@ class MediaManager(wx.Frame):
         r = requests.get(RELEASE_URL + '/latest')
         if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
             try:
-                webbrowser.open(r.url)
                 wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
+                webbrowser.open(RELEASE_URL)
             except:
                 pass
 
@@ -557,6 +558,23 @@ class MediaManager(wx.Frame):
         bmp = wx.Bitmap(image)
         self.image_list.Replace(mf_i, bmp)
         self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+
+    def OnThumbSave(self, e):
+        if not self.mediafile_selected:
+            return
+        with wx.FileDialog(self, 'save thumbnail', '', '', 'JPEG file (*.jpg)|*.jpg',
+                           wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            pathname = fileDialog.GetPath()
+            thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
+            try:
+                with open(pathname, 'wb') as f:
+                    f.write(thumb[1])
+                    f.close()
+            except IOError:
+                logging.error('cannot save jpg file : %s' % pathname)
 
     def OnThumbSelect(self, e):
         self.thumb_sel = self.thumbsList.GetFirstSelected()
