@@ -391,10 +391,9 @@ class MediaManager(wx.Frame):
                 mf_i += 1
 
             self.db_updated = False
-        if self.cat_thread and self.cat_thread.is_alive():
-            self.db_timer.Start(2000)
-        else:
+        if not self.cat_thread or not self.cat_thread.is_alive():
             self.db_updated = False
+            self.db_timer.Stop()
 
     def get_scaled_image(self, il, image):
         il_size = il.GetSize()
@@ -663,6 +662,14 @@ class MediaManager(wx.Frame):
             for n in range(catDialog.topList.GetCount()):
                 new_topdirs.append(catDialog.topList.GetString(n))
 
+            td_i = 0
+            while td_i < len(self.catalog.topdir_list):
+                topdir = self.catalog.topdir_list[td_i]
+                if not (topdir.abspath in new_topdirs):
+                    self.catalog.del_topdir(topdir.abspath)
+                    td_i -= 1
+                td_i += 1
+
             for new_topdir in new_topdirs:
                 found = False
                 for topdir in self.catalog.topdir_list:
@@ -671,14 +678,6 @@ class MediaManager(wx.Frame):
                         break
                 if not found:
                     self.catalog.add_topdir(new_topdir)
-
-            td_i = 0
-            while td_i < len(self.catalog.topdir_list):
-                topdir = self.catalog.topdir_list[td_i]
-                if not (topdir.abspath in new_topdirs):
-                    self.catalog.del_topdir(topdir.abspath)
-                    td_i -= 1
-                td_i += 1
 
             self.statusbar.SetStatusText('Start Scanning files (This will take time to check filesystem')
             self.OnSyncCatalog(e)
