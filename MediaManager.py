@@ -414,6 +414,7 @@ class MediaManager(wx.Frame):
         return image.Resize(wx.Size(max_width, max_height), wx.Point((max_width-new_width)//2, (max_height-new_height)//2))
 
     def select_mediafile(self, mf):
+        self.rightPanel.set_mediafile(mf)
         if mf == self.mediafile_selected:
             return
         logging.debug('media file selected : %s' % mf)
@@ -421,7 +422,6 @@ class MediaManager(wx.Frame):
         self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
         self.mediafile_selected = mf
-        self.rightPanel.set_mediafile(mf)
         if mf is None:
             return
 
