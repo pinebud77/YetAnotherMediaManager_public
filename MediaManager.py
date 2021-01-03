@@ -237,6 +237,15 @@ class MediaManager(wx.Frame):
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
 
+        icopath = os.path.join(tempfile.gettempdir(), 'yamm.ico')
+        try:
+            f = open(icopath, 'wb')
+            f.write(icons.app_icon)
+            f.close()
+            self.SetIcon(wx.Icon(icopath))
+        except:
+            pass
+
         self.SetSize((720, 640))
         self.SetTitle('Yet Another Media Manager')
         self.Centre()
