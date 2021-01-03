@@ -15,7 +15,7 @@ Features
 * Filter by actor or tags
 * Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 * Saving thumbnail to JPG file
-* Command-line interface for indexing
+* Command-line interface for indexing : can run with Linux (tried Rasp-PI)
 
 Command Line Arguments
 * -h (--help) : print usage
@@ -31,7 +31,7 @@ Planned Features
 * File deletion inside app
 * Action GIF on focus on file
 
-Dependencies
+Dependencies (Raspberry PI has different dependencies T_T)
 * PotPlayer as media player : https://potplayer.daum.net/ - this can be hand modified by editing yamm.settings JSON file
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
