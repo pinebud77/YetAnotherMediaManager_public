@@ -3,6 +3,7 @@ import sys
 import getopt
 import tempfile
 import requests
+import platform
 import urllib.request
 
 from pyunpack import Archive
@@ -32,7 +33,8 @@ def wmain(yamm_file=None):
     import wx
     from MediaManager import MediaManager
 
-    check_ffmpeg()
+    if platform.system() == 'Windows':
+        check_ffmpeg()
 
     logging.info('loading settings from home directory')
     load_settings()
@@ -55,7 +57,8 @@ def print_msg(msg):
 
 
 def cmain(yamm_file, topdirs, sync=False):
-    check_ffmpeg()
+    if platform.system() == 'Windows':
+        check_ffmpeg()
 
     logging.info('creating catalog file %s', yamm_file)
     if not yamm_file.endswith('.yamm'):
