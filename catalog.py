@@ -25,7 +25,6 @@ import datetime
 from settings import *
 import media_file
 import database_utils as db_utils
-import file_utils as file_utils
 
 
 MAJOR_VERSION = 0
@@ -261,13 +260,41 @@ class Catalog(list):
         for only_db in only_db_list:
             db_utils.del_topdir(self.db_conn, only_db[1])
 
+    def in_extension_list(self, filename, ext_list):
+        for ext in ext_list:
+            if filename.lower().endswith(ext):
+                return True
+        return False
+
+    def get_topdir_filelist(self, topdir, ext_list):
+        new_filelist = []
+
+        for dirpath, dirnames, filenames in os.walk(topdir):
+            for filename in filenames:
+                if self.kill_thread:
+                    return None
+
+                if not self.in_extension_list(filename, ext_list):
+                    continue
+
+                filepath = os.path.join(dirpath, filename)
+                abspath = os.path.abspath(filepath)
+                new_filelist.append(abspath)
+
+                logging.debug('file found: %s' % abspath)
+
+        return new_filelist
+
     def sync_files(self, msg_cb=None):
         add_db_list = []
         del_db_list = []
 
         for topdir in self.topdir_list:
             msg_cb('processing %s' % topdir)
-            fs_list = file_utils.get_topdir_filelist(topdir.abspath, self.extension_list)
+            fs_list = self.get_topdir_filelist(topdir.abspath, self.extension_list)
+            if self.kill_thread:
+                return
+
             db_list = []
             for mf in self:
                 if mf.topdir != topdir:

@@ -39,7 +39,8 @@ def wmain(yamm_file=None):
 
     app = wx.App()
     mm = MediaManager(None)
-    mm.open_catalog(yamm_file)
+    if yamm_file:
+        mm.open_catalog(yamm_file)
     mm.Show()
     app.MainLoop()
 
