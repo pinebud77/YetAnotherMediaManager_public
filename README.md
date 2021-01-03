@@ -17,6 +17,8 @@ Features
 * Saving thumbnail to JPG file
 
 Planned Features
+* Platform Independent code
+* Command-line interface for indexing
 * Creating GIFs from thumbnails
 * File deletion inside app
 * Action GIF on focus on file
