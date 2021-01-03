@@ -247,9 +247,10 @@ class MediaManager(wx.Frame):
             pass
 
         self.SetSize((720, 640))
-        self.SetTitle('Yet Another Media Manager')
+        self.SetTitle('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR))
         self.Centre()
 
+        logging.info('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR))
         r = requests.get(RELEASE_URL + '/latest')
         if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
             try:
