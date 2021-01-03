@@ -18,7 +18,7 @@ Features
 
 Planned Features
 * Creating GIFs from thumbnails
-* File deletion
+* File deletion inside app
 
 Dependencies
 * PotPlayer as media player : https://potplayer.daum.net/
