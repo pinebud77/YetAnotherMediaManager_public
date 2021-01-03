@@ -25,6 +25,9 @@ import datetime
 import logging
 import requests
 import webbrowser
+import tempfile
+import urllib.request
+from pyunpack import Archive
 
 import settings
 import icons
@@ -738,15 +741,3 @@ class MediaManager(wx.Frame):
         if self.cat_thread:
             self.stop_sync(0)
         self.Destroy()
-
-if __name__ == '__main__':
-    logging.basicConfig(filename='YetAnotherMediaManager.log', filemode='w', level=logging.INFO)
-
-    load_settings()
-
-    app = wx.App()
-    mm = MediaManager(None)
-    mm.Show()
-    app.MainLoop()
-
-    store_settings()

@@ -5,3 +5,6 @@ dist
 .gitignore
 icons
 *.yamm
+*.pyo
+*.log
+libs
