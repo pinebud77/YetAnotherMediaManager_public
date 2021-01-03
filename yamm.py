@@ -1,7 +1,6 @@
 import logging
 import sys
 import getopt
-import wx
 import tempfile
 import requests
 import urllib.request
@@ -30,13 +29,15 @@ def check_ffmpeg():
 
 
 def wmain(yamm_file=None):
+    import wx
+    from MediaManager import MediaManager
+
     check_ffmpeg()
 
     logging.info('loading settings from home directory')
     load_settings()
 
     app = wx.App()
-    from MediaManager import MediaManager
     mm = MediaManager(None)
     mm.open_catalog(yamm_file)
     mm.Show()
