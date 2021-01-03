@@ -36,7 +36,6 @@ Dependencies
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
 * pyunpack library : pip install pyunpack
-* pyunpack library : pip install pyunpack
 * patool library : pip install patool
 
 Problems
