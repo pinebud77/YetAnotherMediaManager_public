@@ -32,14 +32,16 @@ Planned Features
 * Action GIF on focus on file
 
 Dependencies
-* PotPlayer as media player : https://potplayer.daum.net/
+* PotPlayer as media player : https://potplayer.daum.net/ - this can be hand modified by editing yamm.settings JSON file
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
-
+* pyunpack library : pip install pyunpack
+* pyunpack library : pip install pyunpack
+* patool library : pip install patool
 
 Problems
 * bugs!!
-* DB schema is not fixed yet
+* DB schema is not fixed yet - can be updated anytime
 * still slow
 
 current picture
