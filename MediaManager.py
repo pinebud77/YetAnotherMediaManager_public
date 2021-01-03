@@ -34,7 +34,7 @@ from catalog import *
 from gui_components import *
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 42
+VERSION_MINOR = 43
 
 GITHUB_URL = 'https://github.com/pinebud77/YetAnotherMediaManager_public'
 RELEASE_URL = GITHUB_URL + '/releases'
