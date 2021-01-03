@@ -15,10 +15,15 @@ Features
 * Filter by actor or tags
 * Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 * Saving thumbnail to JPG file
+* Command-line interface for indexing
+
+Command Line Arguments
+* -c (--create=) : create yamm catalog file
+* -a (--adddir=) : add directory when creating yamm catalog
+* -s (--sync=) : sync yamm catalog file
 
 Planned Features
 * Platform Independent code
-* Command-line interface for indexing
 * Creating GIFs from thumbnails
 * File deletion inside app
 * Action GIF on focus on file
@@ -27,6 +32,7 @@ Dependencies
 * PotPlayer as media player : https://potplayer.daum.net/
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
+
 
 Problems
 * bugs!!
