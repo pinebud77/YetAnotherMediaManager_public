@@ -42,9 +42,9 @@ class LeftPanel(wx.Panel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(wx.StaticText(self, label='Filters'), 0)
         hbox.AddStretchSpacer()
-        self.clearButton = wx.Button(self, label='Clear Filters')
+        self.clearButton = wx.Button(self, size=(100, -1), label='Clear Filters')
         self.Bind(wx.EVT_BUTTON, self.OnClear, self.clearButton)
-        hbox.Add(self.clearButton, 1)
+        hbox.Add(self.clearButton, 0, wx.EXPAND)
         vbox.Add(hbox, 0, wx.EXPAND)
         vbox.AddSpacer(3)
 

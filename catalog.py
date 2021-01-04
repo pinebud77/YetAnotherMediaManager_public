@@ -18,9 +18,11 @@
 
 import os
 import os.path
+import glob
 import logging
 import sqlite3
 import datetime
+import re
 
 from settings import *
 import media_file
@@ -266,22 +268,27 @@ class Catalog(list):
                 return True
         return False
 
-    def get_topdir_filelist(self, topdir, ext_list):
+    def get_dir_filelist(self, topdir, ext_list, msg_cb=None):
+        msg_cb('processing directory : %s' % topdir)
+
         new_filelist = []
+        try:
+            names = glob.glob(os.path.join(topdir, '*'))
+        except re.error:
+            return []
 
-        for dirpath, dirnames, filenames in os.walk(topdir):
-            for filename in filenames:
-                if self.kill_thread:
-                    return None
-
-                if not self.in_extension_list(filename, ext_list):
+        for name in names:
+            if self.kill_thread:
+                return None
+            path = os.path.join(topdir, name)
+            abspath = os.path.abspath(path)
+            if os.path.isfile(abspath):
+                if not self.in_extension_list(name, ext_list):
                     continue
-
-                filepath = os.path.join(dirpath, filename)
-                abspath = os.path.abspath(filepath)
                 new_filelist.append(abspath)
-
-                logging.debug('file found: %s' % abspath)
+            if os.path.isdir(abspath):
+                add_files = self.get_dir_filelist(path, ext_list, msg_cb=msg_cb)
+                new_filelist.extend(add_files)
 
         return new_filelist
 
@@ -290,8 +297,7 @@ class Catalog(list):
         del_db_list = []
 
         for topdir in self.topdir_list:
-            msg_cb('processing %s' % topdir)
-            fs_list = self.get_topdir_filelist(topdir.abspath, self.extension_list)
+            fs_list = self.get_dir_filelist(topdir.abspath, self.extension_list, msg_cb=msg_cb)
             if self.kill_thread:
                 return
 
