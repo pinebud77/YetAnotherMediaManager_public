@@ -131,7 +131,7 @@ class MediaFile:
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def load_thumbnails(self):
-        logging.info('loading thumbnail for %s' % self.abspath)
+        logging.debug('loading thumbnail for %s' % self.abspath)
         self.thumbnails = db_utils.get_thumbnails(self.catalog.db_conn, self.id)
         if self.thumbnails:
             return
