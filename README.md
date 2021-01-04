@@ -44,16 +44,24 @@ Problems
 * still slow
 
 Rasberry PI setup guide (only command line tried)
-* of no use currently because the path difference among OS
 ```
-$ sudo su
+sudo su
 # apt update
 # apt install git python3 python3-pip ffmpeg libatlas-base-dev p7zip
 # pip3 install moviepy pyunpack patool
 # git clone https://github.com/pinebud77/YetAnotherMediaManager_public.git
 # cd YetAnotherMediaManager_public
 # python3 yamm.py -c /mnt/backup/test.yamm -a /mnt/backup/video/
+# chmod 777 /mnt/backup/test.yamm
 ```
+
+On Windows machine
+```
+> python yamm.py -i 'z:\test.yamm'
+> python yamm.py -m 'z:\test.yamm' -o '/mnt/backup' -n 'z:\'
+> python yamm.py 'z:\test.yamm'
+```
+
 
 current picture
 ![current pic](https://github.com/pinebud77/YetAnotherMediaManager_public/blob/main/yamm.png)

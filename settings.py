@@ -21,7 +21,7 @@ import os
 import os.path
 from pathlib import Path
 
-DEF_SETTINGS_FILENAME = 'yamm.settings'
+DEF_SETTINGS_FILENAME = '.yamm_settings'
 
 LARGE_THUMBNAILS = 0
 MEDIUM_THUMBNAILS = 1
