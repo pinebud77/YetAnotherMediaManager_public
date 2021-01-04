@@ -32,9 +32,7 @@ import settings
 import icons
 from catalog import *
 from gui_components import *
-
-VERSION_MAJOR = 0
-VERSION_MINOR = 45
+from yamm import VERSION_MAJOR, VERSION_MINOR
 
 GITHUB_URL = 'https://github.com/pinebud77/YetAnotherMediaManager_public'
 RELEASE_URL = GITHUB_URL + '/releases'

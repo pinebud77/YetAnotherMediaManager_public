@@ -131,6 +131,17 @@ def del_topdir(conn, abspath):
     conn.commit()
 
 
+sql_update_topdir = """UPDATE topdir
+                       SET path=?
+                       WHERE path=?
+                    """
+
+def update_topdir(conn, oripath, newpath):
+    c = conn.cursor()
+    c.execute(sql_update_topdir, (newpath, oripath,))
+    conn.commit()
+
+
 sql_create_file_table = """CREATE TABLE IF NOT EXISTS file (
                                 id integer PRIMARY KEY AUTOINCREMENT,
                                 topdir_id INTEGER,

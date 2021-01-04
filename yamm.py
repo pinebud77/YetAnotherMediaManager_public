@@ -12,6 +12,10 @@ from settings import *
 from catalog import Catalog
 
 
+VERSION_MAJOR = 0
+VERSION_MINOR = 46
+
+
 def check_ffmpeg():
     if os.path.exists(os.path.join(tempfile.gettempdir(), 'ffmpeg.exe')):
         logging.info('ffmpeg.exe exists, no need to download')
@@ -21,7 +25,6 @@ def check_ffmpeg():
     r = requests.get(url)
     filename = r.url.split('/')[-1]
     tfile = os.path.join(tempfile.gettempdir(), filename)
-    tfilename = os.path.basename(tfile)
     tfile_noext = '.'.join(tfile.split('.')[:-1])
     urllib.request.urlretrieve(url, tfile)
     Archive(tfile).extractall(tempfile.gettempdir())
@@ -92,10 +95,29 @@ def info_main(yamm_file):
         for mf in catalog:
             if mf.topdir == topdir:
                 count += 1
-        logging.info('\ninfo for topdir : %s (files %d)' % (topdir.abspath, count))
+        logging.info('\ninfo for topdir : %s (%d files)' % (topdir.abspath, count))
     logging.debug('closing catalog file : %s' % yamm_file)
     catalog.close_database()
 
+
+def mod_main(yamm_file, origpart, newpart):
+    logging.debug('open catalog file : %s' % yamm_file)
+    yamm_file = os.path.abspath(yamm_file)
+    catalog = Catalog(db_abspath=yamm_file)
+    catalog.open_database()
+
+    for topdir in catalog.topdir_list:
+        if not (topdir.abspath.startswith(origpart)):
+            continue
+        print(topdir.abspath)
+        trun_path = topdir.abspath.split(origpart)[1]
+        newpath = os.path.join(newpart, trun_path)
+        newpath = os.path.abspath(newpath)
+        logging.info('modify %s -> %s' % (topdir.abspath, newpath))
+        catalog.mod_topdir(topdir, newpath)
+
+    logging.debug('closing catalog file : %s' % yamm_file)
+    catalog.close_database()
 
 def print_help():
     print("open GUI                     : yamm.exe something.yamm")
@@ -103,13 +125,17 @@ def print_help():
     print("sync catalog                 : yamm.exe --sync=yamm_file")
     print("create yamm file (overwrite) : yamm.exe -c yamm_file -a topdir1 -a topdir2 ...")
     print("create yamm file (overwrite) : yamm.exe --create=yamm_file --adddir=topdir1 --adddir=topdir2 ...")
+    print("print yamm file info         : yamm.exe -i yamm_file")
+    print("print yamm file info         : yamm.exe --info yamm_file")
+    print("modify topdir                : yamm.exe -m yamm_file -o original_start -n new_start")
+    print("modify topdir                : yamm.exe --mod=yamm_file --origpart=original_start --newpart=new_start")
 
 
 if __name__ == '__main__':
     opts = None
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   'i:dhc:a:qs:',
+                                   'm:o:n:i:dhc:a:qs:',
                                    ['debug',
                                     'help',
                                     'sync=',
@@ -117,6 +143,9 @@ if __name__ == '__main__':
                                     'adddir=',
                                     'quiet',
                                     'info=',
+                                    'origpart=',
+                                    'newpart=',
+                                    'mod=',
                                     ])
     except getopt.GetoptError:
         print_help()
@@ -128,6 +157,9 @@ if __name__ == '__main__':
     topdirs = []
     debug = False
     info_file = None
+    origpart = None
+    newpart = None
+    mod_file = None
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             print_help()
@@ -144,6 +176,12 @@ if __name__ == '__main__':
             debug = True
         elif opt in ('-i', '--info'):
             info_file = arg
+        elif opt in ('-o', '--origpart'):
+            origpart = arg
+        elif opt in ('-n', '--newpart'):
+            newpart = arg
+        elif opt in ('-m', '--mod'):
+            mod_file = arg
 
     if not yamm_file and args:
         yamm_file = args[0]
@@ -166,5 +204,7 @@ if __name__ == '__main__':
         info_main(info_file)
     elif yamm_file and topdirs:
         cmain(yamm_file, topdirs)
+    elif mod_file:
+        mod_main(mod_file, origpart, newpart)
     else:
         wmain(yamm_file)

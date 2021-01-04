@@ -408,6 +408,12 @@ class Catalog(list):
         self.sync_topdir()
         self.sync_files(msg_cb=msg_cb)
 
+    def mod_topdir(self, topdir, newpath):
+        newpath = os.path.abspath(newpath)
+        db_utils.update_topdir(self.db_conn, topdir.abspath, newpath)
+        topdir.abspath = newpath
+
     def close_database(self):
         if self.db_conn:
             self.db_conn.close()
+
