@@ -33,9 +33,6 @@ def wmain(yamm_file=None):
     import wx
     from MediaManager import MediaManager
 
-    if platform.system() == 'Windows':
-        check_ffmpeg()
-
     logging.info('loading settings from home directory')
     load_settings()
 
@@ -57,9 +54,6 @@ def print_msg(msg):
 
 
 def cmain(yamm_file, topdirs, sync=False):
-    if platform.system() == 'Windows':
-        check_ffmpeg()
-
     logging.info('creating catalog file %s', yamm_file)
     if not yamm_file.endswith('.yamm'):
         logging.warning('yamm file extension is not .yamm. This file may not be open by GUI')
@@ -69,7 +63,7 @@ def cmain(yamm_file, topdirs, sync=False):
             os.remove(yamm_file)
         except:
             pass
-    logging.info('open catalog file %s', yamm_file)
+    logging.info('open catalog file : %s' % yamm_file)
     catalog = Catalog(db_abspath=yamm_file)
     catalog.open_database()
     if not sync:
@@ -87,6 +81,22 @@ def cmain(yamm_file, topdirs, sync=False):
     sys.exit()
 
 
+def info_main(yamm_file):
+    logging.debug('open catalog file : %s' % yamm_file)
+    yamm_file = os.path.abspath(yamm_file)
+    catalog = Catalog(db_abspath=yamm_file)
+    catalog.open_database()
+
+    for topdir in catalog.topdir_list:
+        count = 0
+        for mf in catalog:
+            if mf.topdir == topdir:
+                count += 1
+        logging.info('\ninfo for topdir : %s (files %d)' % (topdir.abspath, count))
+    logging.debug('closing catalog file : %s' % yamm_file)
+    catalog.close_database()
+
+
 def print_help():
     print("open GUI                     : yamm.exe something.yamm")
     print("sync catalog                 : yamm.exe -s yamm_file")
@@ -98,7 +108,16 @@ def print_help():
 if __name__ == '__main__':
     opts = None
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'dhc:a:qs:', ['debug', 'help', 'sync=', 'create=', 'adddir=', 'quiet'])
+        opts, args = getopt.getopt(sys.argv[1:],
+                                   'i:dhc:a:qs:',
+                                   ['debug',
+                                    'help',
+                                    'sync=',
+                                    'create=',
+                                    'adddir=',
+                                    'quiet',
+                                    'info=',
+                                    ])
     except getopt.GetoptError:
         print_help()
         sys.exit(-1)
@@ -108,6 +127,7 @@ if __name__ == '__main__':
     quiet = False
     topdirs = []
     debug = False
+    info_file = None
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             print_help()
@@ -122,6 +142,8 @@ if __name__ == '__main__':
             sync_file = arg
         elif opt in ('-d', '--debug'):
             debug = True
+        elif opt in ('-i', '--info'):
+            info_file = arg
 
     if not yamm_file and args:
         yamm_file = args[0]
@@ -135,8 +157,13 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s : %(message)s',
                             level=logging.INFO)
 
+    if platform.system() == 'Windows':
+        check_ffmpeg()
+
     if sync_file:
         cmain(sync_file, None, sync=True)
+    elif info_file:
+        info_main(info_file)
     elif yamm_file and topdirs:
         cmain(yamm_file, topdirs)
     else:
