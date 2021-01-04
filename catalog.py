@@ -297,6 +297,10 @@ class Catalog(list):
         del_db_list = []
 
         for topdir in self.topdir_list:
+            if not os.path.exists(topdir.abspath):
+                logging.warning('topdir is not accessible.. ignoring..')
+                msg_cb('topdir is not accessible.. ignoring %s' % topdir.abspath)
+                continue
             fs_list = self.get_dir_filelist(topdir.abspath, self.extension_list, msg_cb=msg_cb)
             if self.kill_thread:
                 return
