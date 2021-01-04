@@ -124,6 +124,12 @@ class MediaFile:
 
         self.thumbnails = thumbnails
 
+        try:
+            del(clip)
+        except Exception as e:
+            logging.error(e)
+            return
+
     def save_thumbnails(self):
         if not self.thumbnails:
             return
@@ -170,6 +176,7 @@ class MediaFile:
         try:
             clip = VideoFileClip(self.abspath, audio=False)
             self.duration = clip.duration
+            del(clip)
         except Exception as e:
             logging.error(e)
             return
