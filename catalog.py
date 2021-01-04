@@ -361,11 +361,10 @@ class Catalog(list):
             db_utils.add_file_nocommit(self.db_conn, mf)
             self.db_conn.commit()
             db_utils.set_file_id(self.db_conn, mf)
-            if not mf.thumbnails:
-                continue
-            mf.save_thumbnails()
-            db_utils.del_cover(self.db_conn, mf.id)
-            db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
+            if mf.thumbnails:
+                mf.save_thumbnails()
+                db_utils.del_cover(self.db_conn, mf.id)
+                db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
             self.append(mf)
             del add_db_list[0]
 
