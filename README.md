@@ -26,7 +26,7 @@ Command Line Arguments
 * -q (--quiet) : print no message
 
 Planned Features
-* Platform Independent code
+* Multi file select
 * Creating GIFs from thumbnails
 * File deletion inside app
 * Action GIF on focus on file
