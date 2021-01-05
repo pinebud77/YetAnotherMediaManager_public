@@ -27,6 +27,7 @@ Command Line Arguments
 
 Planned Features
 * Multi file select
+* File deletion
 * Creating GIFs from thumbnails
 * File deletion inside app
 * Action GIF on focus on file
