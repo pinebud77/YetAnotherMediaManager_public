@@ -216,17 +216,11 @@ class RightPanel(wx.Panel):
         self.propertyList.InsertColumn(1, 'Value', width=195)
 
         self.propertyList.InsertItem(0, 'Filename')
-        self.propertyList.SetItem(0, 1, '')
         self.propertyList.InsertItem(1, 'Path')
-        self.propertyList.SetItem(1, 1, '')
         self.propertyList.InsertItem(2, 'Stars')
-        self.propertyList.SetItem(2, 1, '')
         self.propertyList.InsertItem(3, 'Size')
-        self.propertyList.SetItem(3, 1, '')
         self.propertyList.InsertItem(4, 'Duration')
-        self.propertyList.SetItem(4, 1, '')
         self.propertyList.InsertItem(5, 'LastPlayed')
-        self.propertyList.SetItem(5, 1, '')
         self.set_property()
 
         vbox.Add(self.propertyList)
@@ -370,6 +364,7 @@ class RightPanel(wx.Panel):
 
     def set_property(self):
         if not self.media_file:
+            self.propertyList.DeleteAllItems()
             self.propertyList.InsertItem(0, 'Filename')
             self.propertyList.SetItem(0, 1, '')
             self.propertyList.InsertItem(1, 'Path')

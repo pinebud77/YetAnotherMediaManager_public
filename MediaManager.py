@@ -59,6 +59,7 @@ class MediaManager(wx.Frame):
         else:
             self.sort_positive = -1
         self.thread_catalog = None
+        self.file_to_open = None
 
         self.InitUI()
 
@@ -218,7 +219,10 @@ class MediaManager(wx.Frame):
         self.thumbsList = thumbsList
 
         self.db_timer = wx.Timer(self, 0)
-        self.Bind(wx.EVT_TIMER, self.OnDbTimer)
+        self.Bind(wx.EVT_TIMER, self.OnDbTimer, self.db_timer)
+
+        self.open_timer = wx.Timer(self, 1)
+        self.Bind(wx.EVT_TIMER, self.OnOpenTimer, self.open_timer)
 
         self.thumbRightMenu = wx.Menu()
         menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
@@ -693,6 +697,12 @@ class MediaManager(wx.Frame):
         self.statusbar.SetStatusText('Start Scanning files...')
         self.OnSyncCatalog(None)
         self.leftPanel.set_mm_window(self)
+
+    def OnOpenTimer(self, e):
+        print('open timer')
+        self.open_timer.Stop()
+        pathname = os.path.abspath(self.file_to_open)
+        self.open_catalog(pathname)
 
     def OnOpenCatalog(self, e):
         self.OnCloseCatalog(None)

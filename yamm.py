@@ -41,9 +41,10 @@ def wmain(yamm_file=None):
 
     app = wx.App()
     mm = MediaManager(None)
-    if yamm_file:
-        mm.open_catalog(yamm_file)
     mm.Show()
+    if yamm_file:
+        mm.file_to_open = yamm_file
+        mm.open_timer.Start(100)
     app.MainLoop()
 
     logging.info('saving settings to home directory')
