@@ -71,6 +71,9 @@ class LeftPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnTagSelect, self.tagList)
         vbox.Add(self.tagList, 1, wx.EXPAND)
 
+        self.update_timer = wx.Timer(self, 0)
+        self.Bind(wx.EVT_TIMER, self.OnUpdateTimer)
+
         self.clearButton.Disable()
         self.fileText.Disable()
         self.actorList.Disable()
@@ -83,10 +86,15 @@ class LeftPanel(wx.Panel):
         self.file_filter = self.fileText.GetValue()
         self.mm_window.update_view()
 
+    def OnUpdateTimer(self, e):
+        self.update_timer.Stop()
+        self.mm_window.update_view()
+
     def OnActorSelect(self, e):
         self.actor_selected = []
         idx = self.actorList.GetFirstSelected()
         if idx < 0:
+            self.update_timer.Start(10)
             return
         name = self.actorList.GetItemText(idx)
         self.actor_selected.append(name)
@@ -97,12 +105,13 @@ class LeftPanel(wx.Panel):
             name = self.actorList.GetItemText(idx)
             self.actor_selected.append(name)
         self.actor_selected.sort()
-        self.mm_window.update_view()
+        self.update_timer.Start(10)
 
     def OnTagSelect(self, e):
         self.tag_selected = []
         idx = self.tagList.GetFirstSelected()
         if idx < 0:
+            self.update_timer.Start(10)
             return
         tag = self.tagList.GetItemText(idx)
         self.tag_selected.append(tag)
@@ -113,7 +122,7 @@ class LeftPanel(wx.Panel):
             name = self.tagList.GetItemText(idx)
             self.tag_selected.append(name)
         self.tag_selected.sort()
-        self.mm_window.update_view()
+        self.update_timer.Start(10)
 
     def OnClear(self, e):
         self.actor_selected = []
