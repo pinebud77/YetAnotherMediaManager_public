@@ -338,6 +338,8 @@ class MediaManager(wx.Frame):
             elif self.view_type == LARGE_THUMBNAILS:
                 self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+            for mf in self.catalog:
+                mf.imagelist_index = None
             self.files = []
 
         self.filesList.DeleteAllItems()
