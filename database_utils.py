@@ -166,12 +166,13 @@ def create_file_table(conn):
 
 
 sql_get_file = """SELECT id, topdir_id, reldir, filename, stars, size, time, lastplay, duration, comment
-                  FROM file;
+                  FROM file
+                  WHERE id >= ?;
                """
 
-def get_file_list(conn):
+def get_file_list(conn, fileid=0):
     c = conn.cursor()
-    c.execute(sql_get_file)
+    c.execute(sql_get_file, (fileid,))
     return c.fetchall()
 
 sql_update_file = """UPDATE file

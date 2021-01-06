@@ -379,7 +379,11 @@ class Catalog(list):
             msg_cb('Sync Finished')
 
     def reload_files(self):
-        db_file_list = db_utils.get_file_list(self.db_conn)
+        min_fileid = 0
+        for mf in self:
+            if mf.id > min_fileid:
+                max_fileid = mf.id
+        db_file_list = db_utils.get_file_list(self.db_conn, min_fileid)
 
         mf_i = 0
         while mf_i < len(self):
