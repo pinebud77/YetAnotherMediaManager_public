@@ -49,6 +49,7 @@ class MediaManager(wx.Frame):
         self.resized = False
         self.mediafile_selected = None
         self.cat_thread = None
+        self.thread_message = None
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
@@ -174,8 +175,8 @@ class MediaManager(wx.Frame):
         filesList = wx.ListCtrl(self, style=wx.LC_ICON |
                                              wx.LC_SINGLE_SEL |
                                              wx.BORDER_SUNKEN |
-                                             wx.LC_AUTOARRANGE |
-                                             wx.LC_SORT_ASCENDING)
+                                             wx.LC_AUTOARRANGE)
+        filesList.SetDoubleBuffered(True)
         filesList.InsertColumn(0, 'thumbnail', width=360)
         filesList.InsertColumn(1, 'filename', width=200)
         filesList.InsertColumn(2, 'size', width=100)
@@ -308,9 +309,6 @@ class MediaManager(wx.Frame):
     def add_mediafile(self, mf):
         index = len(self.files)
         self.files.append(mf)
-        list_idx = self.filesList.InsertItem(index, mf.filename)
-        self.filesList.SetItemData(list_idx, index)
-
         if mf.imagelist_index is None:
             jpg_bytes = mf.get_coverjpg()
             if jpg_bytes:
@@ -321,21 +319,18 @@ class MediaManager(wx.Frame):
             image = self.get_scaled_image(self.image_list, image)
             bmp = wx.Bitmap(image)
             mf.imagelist_index = self.image_list.Add(bmp)
-        self.filesList.SetItemImage(list_idx, mf.imagelist_index)
+        list_idx = self.filesList.InsertItem(index,
+                                             mf.filename,
+                                             mf.imagelist_index)
+        self.filesList.SetItemData(list_idx, index)
 
         if mf == self.mediafile_selected:
             self.select_mediafile(None)
             self.select_mediafile(mf)
 
     def OnViewChange(self, vtype=None):
-        if self.view_type != vtype:
-            if vtype is not None:
-                self.view_type = vtype
-            self.files = []
-            if self.catalog:
-                for mf in self.catalog:
-                    mf.imagelist_index = None
-
+        if self.view_type != vtype and vtype is not None:
+            self.view_type = vtype
             if self.view_type == SMALL_THUMBNAILS:
                 self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
             elif self.view_type == MEDIUM_THUMBNAILS:
@@ -343,28 +338,35 @@ class MediaManager(wx.Frame):
             elif self.view_type == LARGE_THUMBNAILS:
                 self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+            self.files = []
 
         self.filesList.DeleteAllItems()
 
         if not self.catalog:
             return
         files = self.catalog.filter(actors=self.leftPanel.actor_selected,
-                                         tags=self.leftPanel.tag_selected,
-                                         filename=self.leftPanel.file_filter)
+                                    tags=self.leftPanel.tag_selected,
+                                    filename=self.leftPanel.file_filter)
 
         self.rightPanel.set_mediafile(None)
         count = 0
         total = len(files)
         for mf in files:
             count += 1
-            if count % 10 == 0:
+            if count % 30 == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
                 wx.Yield()
             self.add_mediafile(mf)
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
+        self.OnSortChange(None)
+
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')
+        if self.thread_message:
+            self.statusbar.SetStatusText(self.thread_message)
+            self.thread_message = None
+
         if self.db_updated:
             self.catalog.reload_files()
 
@@ -422,6 +424,9 @@ class MediaManager(wx.Frame):
         if mf == self.mediafile_selected:
             return
         logging.debug('media file selected : %s' % mf)
+
+        if self.mediafile_selected:
+            self.mediafile_selected.thumbnails = None
 
         self.rightPanel.set_mediafile(mf)
         self.thumbsList.DeleteAllItems()
@@ -694,12 +699,11 @@ class MediaManager(wx.Frame):
         self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
         self.catalog.open_database()
         self.update_view()
+        self.leftPanel.set_mm_window(self)
         self.statusbar.SetStatusText('Start Scanning files...')
         self.OnSyncCatalog(None)
-        self.leftPanel.set_mm_window(self)
 
     def OnOpenTimer(self, e):
-        print('open timer')
         self.open_timer.Stop()
         pathname = os.path.abspath(self.file_to_open)
         self.open_catalog(pathname)
@@ -727,7 +731,7 @@ class MediaManager(wx.Frame):
         self.update_view()
 
     def mm_sync_cb(self, msg):
-        self.statusbar.SetStatusText(msg)
+        self.thread_message = msg
         self.db_updated = True
 
     def cat_thread_func(self):
