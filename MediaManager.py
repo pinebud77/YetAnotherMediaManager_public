@@ -324,8 +324,8 @@ class MediaManager(wx.Frame):
         if mf.list_item is None:
             mf.list_item = wx.ListItem()
             mf.list_item.SetText(mf.filename)
-            mf.list_item.SetImage(mf.imagelist_index)
 
+        mf.list_item.SetImage(mf.imagelist_index)
         mf.list_item.SetData(index)
         mf.list_item.SetId(index)
         self.filesList.InsertItem(mf.list_item)
