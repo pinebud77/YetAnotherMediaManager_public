@@ -190,7 +190,7 @@ if __name__ == '__main__':
     if quiet:
         logging.basicConfig(level=logging.CRITICAL)
     elif debug:
-        logging.basicConfig(format='%(levelname)s : %(message)s',
+        logging.basicConfig(format='%(asctime)-15s %(levelname)s : %(message)s',
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format='%(levelname)s : %(message)s',

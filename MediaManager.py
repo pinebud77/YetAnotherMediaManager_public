@@ -321,14 +321,10 @@ class MediaManager(wx.Frame):
             bmp = wx.Bitmap(image)
             mf.imagelist_index = self.image_list.Add(bmp)
 
-        if mf.list_item is None:
-            mf.list_item = wx.ListItem()
-            mf.list_item.SetText(mf.filename)
-
-        mf.list_item.SetImage(mf.imagelist_index)
-        mf.list_item.SetData(index)
-        mf.list_item.SetId(index)
-        self.filesList.InsertItem(mf.list_item)
+        list_idx = self.filesList.InsertItem(index,
+                                             mf.filename,
+                                             mf.imagelist_index)
+        self.filesList.SetItemData(list_idx, index)
 
         if mf == self.mediafile_selected:
             self.select_mediafile(None)
@@ -347,6 +343,8 @@ class MediaManager(wx.Frame):
             for mf in self.catalog:
                 mf.imagelist_index = None
             self.files = []
+
+        logging.debug('view loading started')
 
         self.filesList.DeleteAllItems()
 
@@ -368,6 +366,8 @@ class MediaManager(wx.Frame):
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
+
+        logging.debug('view loading finished')
 
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')
