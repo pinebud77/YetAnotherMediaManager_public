@@ -355,7 +355,7 @@ class MediaManager(wx.Frame):
         total = len(files)
         for mf in files:
             count += 1
-            if count % 30 == 0:
+            if count % 25 == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
                 wx.Yield()
             self.add_mediafile(mf)
