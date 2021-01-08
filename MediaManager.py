@@ -173,16 +173,17 @@ class MediaManager(wx.Frame):
         ivbox.Add(ihbox, 0, wx.EXPAND)
 
         filesList = wx.ListCtrl(self, style=wx.LC_ICON |
-                                             wx.LC_SINGLE_SEL |
-                                             wx.BORDER_SUNKEN |
-                                             wx.LC_AUTOARRANGE)
+                                            wx.LC_SINGLE_SEL |
+                                            wx.BORDER_SUNKEN |
+                                            wx.LC_AUTOARRANGE |
+                                            wx.NO_FULL_REPAINT_ON_RESIZE |
+                                            wx.CLIP_CHILDREN)
         filesList.SetDoubleBuffered(True)
         filesList.InsertColumn(0, 'thumbnail', width=360)
         filesList.InsertColumn(1, 'filename', width=200)
         filesList.InsertColumn(2, 'size', width=100)
         filesList.InsertColumn(3, 'duration', width=100)
         filesList.InsertColumn(4, 'path', width=360)
-        filesList.SetAutoLayout(True)
         ivbox.Add(filesList, 1, flag=wx.ALL|wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
@@ -234,7 +235,6 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnThumbSave, menuThumbSave)
 
         self.SetSizer(vbox)
-        self.SetAutoLayout(True)
 
         self.Bind(wx.EVT_CLOSE, self.OnClose, self)
 
@@ -354,6 +354,7 @@ class MediaManager(wx.Frame):
                                     tags=self.leftPanel.tag_selected,
                                     filename=self.leftPanel.file_filter)
 
+        self.leftPanel.Disable()
         self.rightPanel.set_mediafile(None)
         count = 0
         total = len(files)
@@ -366,6 +367,7 @@ class MediaManager(wx.Frame):
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
+        self.leftPanel.Enable()
 
         logging.debug('view loading finished')
 
