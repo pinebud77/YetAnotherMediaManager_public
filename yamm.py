@@ -196,8 +196,8 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s : %(message)s',
                             level=logging.INFO)
 
-    if platform.system() == 'Windows':
-        check_ffmpeg()
+    #if platform.system() == 'Windows':
+    #    check_ffmpeg()
 
     if sync_file:
         cmain(sync_file, None, sync=True)
