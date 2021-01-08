@@ -13,7 +13,7 @@ from catalog import Catalog
 
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 54
+VERSION_MINOR = 55
 
 
 def check_ffmpeg():
