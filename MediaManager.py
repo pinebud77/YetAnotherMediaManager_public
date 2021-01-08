@@ -47,12 +47,13 @@ class MediaManager(wx.Frame):
         self.catalog = None
         self.view_type = settings.DEF_VIEW_TYPE
         self.resized = False
-        self.mediafile_selected = None
         self.cat_thread = None
         self.thread_message = None
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
+        self.files_selected = []
+        self.file_last_selected = None
         self.sort_method = settings.DEF_SORT_METHOD
         self.sort_ascend = settings.DEF_SORT_ASCEND
         if self.sort_ascend:
@@ -173,7 +174,6 @@ class MediaManager(wx.Frame):
         ivbox.Add(ihbox, 0, wx.EXPAND)
 
         filesList = wx.ListCtrl(self, style=wx.LC_ICON |
-                                            wx.LC_SINGLE_SEL |
                                             wx.BORDER_SUNKEN |
                                             wx.LC_AUTOARRANGE |
                                             wx.NO_FULL_REPAINT_ON_RESIZE |
@@ -195,7 +195,7 @@ class MediaManager(wx.Frame):
             self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
         filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
-        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileSelect, filesList)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileDeselect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
         #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
         filesList.SetDoubleBuffered(True)
@@ -223,9 +223,10 @@ class MediaManager(wx.Frame):
 
         self.db_timer = wx.Timer(self, 0)
         self.Bind(wx.EVT_TIMER, self.OnDbTimer, self.db_timer)
-
         self.open_timer = wx.Timer(self, 1)
         self.Bind(wx.EVT_TIMER, self.OnOpenTimer, self.open_timer)
+        self.thumb_timer = wx.Timer(self, 2)
+        self.Bind(wx.EVT_TIMER, self.OnThumbTimer, self.thumb_timer)
 
         self.thumbRightMenu = wx.Menu()
         menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
@@ -327,10 +328,6 @@ class MediaManager(wx.Frame):
                                              mf.imagelist_index)
         self.filesList.SetItemData(list_idx, index)
 
-        if mf == self.mediafile_selected:
-            self.select_mediafile(None)
-            self.select_mediafile(mf)
-
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
             self.view_type = vtype
@@ -351,6 +348,10 @@ class MediaManager(wx.Frame):
 
         logging.debug('view loading started')
 
+        self.files_selected = []
+        self.file_last_selected = None
+        self.rightPanel.set_mediafiles(self.files_selected)
+
         self.filesList.DeleteAllItems()
 
         if not self.catalog:
@@ -361,7 +362,6 @@ class MediaManager(wx.Frame):
 
         self.filesList.Freeze()
         self.leftPanel.Disable()
-        self.rightPanel.set_mediafile(None)
         count = 0
         total = len(files)
         for mf in files:
@@ -409,8 +409,8 @@ class MediaManager(wx.Frame):
                         data = self.filesList.GetItemData(idx)
                         if data >= mf_i:
                             self.filesList.SetItemData(idx, data - 1)
-                    if mf == self.mediafile_selected:
-                        self.select_mediafile(None)
+                    if mf in self.files_selected:
+                        self.deselect_file(mf)
                     logging.debug('file removed from view : %s' % mf)
                     del self.files[mf_i]
                     mf_i -= 1
@@ -439,37 +439,34 @@ class MediaManager(wx.Frame):
         image = image.Rescale(new_width, new_height)
         return image.Resize(wx.Size(max_width, max_height), wx.Point((max_width-new_width)//2, (max_height-new_height)//2))
 
-    def select_mediafile(self, mf):
-        if mf == self.mediafile_selected:
+    def deselect_file(self, mf):
+        if not (mf in self.files_selected):
             return
-        logging.debug('media file selected : %s' % mf)
 
-        if self.mediafile_selected:
-            self.mediafile_selected.thumbnails = None
+        logging.debug('media file deselected : %s' %mf)
 
-        self.rightPanel.set_mediafile(mf)
+        mf.thumbnails = None
+        self.files_selected.remove(mf)
+        self.rightPanel.set_mediafiles(self.files_selected)
+
+        if mf != self.file_last_selected:
+            return
         self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
-        self.mediafile_selected = mf
-        if mf is None:
-            return
+        self.file_last_selected = None
 
-        index = 0
-        for mf_i in self.files:
-            if mf == mf_i:
-                break
-            index += 1
-        if index == len(self.catalog):
-            self.mediafile_selected = None
+    def OnThumbTimer(self, e):
+        if not self.file_last_selected:
             return
-        if not mf.get_thumbnails():
+        thumbs = self.file_last_selected.get_thumbnails()
+        if not thumbs:
             return
         index = 0
-        for tb in mf.get_thumbnails():
+        for tb in thumbs:
             time = tb[0]
             jpg = tb[1]
 
-            hours = int(time/3600)
+            hours = int(time / 3600)
             minutes = int((time - hours * 3600) / 60)
             seconds = int(time - hours * 3600 - minutes * 60)
             self.thumbsList.InsertItem(index, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
@@ -482,6 +479,21 @@ class MediaManager(wx.Frame):
             self.thumbsList.SetItemImage(index, index)
 
             index += 1
+
+    def select_file(self, mf):
+        if mf in self.files_selected:
+            return
+
+        logging.debug('media file selected : %s' % mf)
+
+        self.files_selected.append(mf)
+        self.rightPanel.set_mediafiles(self.files_selected)
+        self.thumbsList.DeleteAllItems()
+        self.thumbs_list.RemoveAll()
+        self.file_last_selected = mf
+
+        self.thumb_timer.Stop()
+        self.thumb_timer.Start(5, oneShot=True)
 
     def sort_filename(self, item1, item2):
         mf1 = self.files[item1]
@@ -577,7 +589,7 @@ class MediaManager(wx.Frame):
         wx.MessageBox('not implemented yet', 'still working on', wx.OK | wx.ICON_ERROR)
 
     def OnCover(self, e):
-        mf = self.mediafile_selected
+        mf = self.file_last_selected
         logging.info('cover selected for %s' % mf)
         mf.set_cover_id(self.thumb_sel)
         for mf_i in range(len(self.files)):
@@ -595,7 +607,7 @@ class MediaManager(wx.Frame):
         self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
     def OnThumbSave(self, e):
-        if not self.mediafile_selected:
+        if not self.file_last_selected:
             return
         with wx.FileDialog(self, 'save thumbnail', '', '', 'JPEG file (*.jpg)|*.jpg',
                            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
@@ -603,7 +615,7 @@ class MediaManager(wx.Frame):
                 return
 
             pathname = fileDialog.GetPath()
-            thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
+            thumb = self.file_last_selected.thumbnails[self.thumb_sel]
             try:
                 with open(pathname, 'wb') as f:
                     f.write(thumb[1])
@@ -615,39 +627,38 @@ class MediaManager(wx.Frame):
         self.thumb_sel = self.thumbsList.GetFirstSelected()
 
     def OnThumbDClick(self, e):
-        logging.info('openning videoclip : %s' % self.mediafile_selected)
-        thumb = self.mediafile_selected.thumbnails[self.thumb_sel]
+        logging.info('openning videoclip : %s' % self.file_last_selected)
+        thumb = self.file_last_selected.thumbnails[self.thumb_sel]
         run_list = (DEF_OPEN_EXE,
-                    DEF_OPEN_FILE % self.mediafile_selected.abspath,
+                    DEF_OPEN_FILE % self.file_last_selected.abspath,
                     DEF_OPEN_SEEK % thumb[0])
         subprocess.Popen(run_list)
-        self.mediafile_selected.set_lastplayed(datetime.datetime.now())
-        self.rightPanel.set_mediafile(self.mediafile_selected)
+        self.file_last_selected.set_lastplayed(datetime.datetime.now())
+        self.rightPanel.set_mediafiles(self.files_selected)
 
     def OnFileDClick(self, e):
-        logging.info('openning videoclip : %s' % self.mediafile_selected)
+        logging.info('openning videoclip : %s' % self.file_last_selected)
         run_list = (DEF_OPEN_EXE,
-                    DEF_OPEN_FILE % self.mediafile_selected.abspath)
+                    DEF_OPEN_FILE % self.file_last_selected.abspath)
         subprocess.Popen(run_list)
-        self.mediafile_selected.set_lastplayed(datetime.datetime.now())
-        self.rightPanel.set_mediafile(self.mediafile_selected)
+        self.file_last_selected.set_lastplayed(datetime.datetime.now())
+        self.rightPanel.set_mediafiles(self.files_selected)
 
     def OnThumbRight(self, e):
         self.thumb_item_clicked = e.GetText()
         self.thumbsList.PopupMenu(self.thumbRightMenu, e.GetPoint())
 
     def OnFileSelect(self, e):
-        sel = self.filesList.GetFirstSelected()
-        if sel < 0:
-            self.select_mediafile(None)
-            return
-        sel = self.filesList.GetItemData(sel)
+        sel = self.filesList.GetItemData(e.GetIndex())
         mf = self.files[sel]
-
         logging.debug('file selected from view : %s' % mf)
+        self.select_file(mf)
 
-        self.select_mediafile(None)
-        self.select_mediafile(mf)
+    def OnFileDeselect(self, e):
+        sel = self.filesList.GetItemData(e.GetIndex())
+        mf = self.files[sel]
+        logging.debug('file selected from view : %s' % mf)
+        self.deselect_file(mf)
 
     def OnNewCatalog(self, e):
         self.stop_sync()
@@ -660,7 +671,7 @@ class MediaManager(wx.Frame):
             abspath = os.path.abspath(catDialog.catPath.GetLabelText())
             try:
                 os.remove(abspath)
-            except:
+            except Exception as e:
                 pass
             self.catalog = Catalog(db_abspath=abspath)
             self.catalog.open_database()
@@ -723,7 +734,6 @@ class MediaManager(wx.Frame):
         self.OnSyncCatalog(None)
 
     def OnOpenTimer(self, e):
-        self.open_timer.Stop()
         pathname = os.path.abspath(self.file_to_open)
         self.open_catalog(pathname)
 

@@ -196,7 +196,7 @@ class RightPanel(wx.Panel):
         super(RightPanel, self).__init__(*args, **kwargs)
 
         self.mm_window = None
-        self.media_file = None
+        self.files_selected = []
 
         self.actor_list = []
         self.actor_selected = []
@@ -289,14 +289,19 @@ class RightPanel(wx.Panel):
     def OnActorCheck(self, e):
         sel = e.GetIndex()
         name = self.actorList.GetItemText(sel, 1)
-        if self.media_file:
-            self.media_file.add_actor(name)
+        for mf in self.files_selected:
+            mf.add_actor(name)
 
     def OnActorUncheck(self, e):
         sel = e.GetIndex()
         name = self.actorList.GetItemText(sel, 1)
-        if self.media_file:
-            self.media_file.del_actor(name)
+
+        for mf in self.files_selected:
+            if not (name in mf.actor_list):
+                return
+
+        for mf in self.files_selected:
+            mf.del_actor(name)
 
     def OnActorAdd(self, e):
         name = self.actorText.GetValue()
@@ -308,7 +313,8 @@ class RightPanel(wx.Panel):
             self.mm_window.leftPanel.add_actor(name)
         if not (name in self.actor_selected):
             self.actor_selected.append(name)
-            self.media_file.add_actor(name)
+            for mf in self.files_selected:
+                mf.add_actor(name)
 
         self.update_actor()
 
@@ -327,14 +333,19 @@ class RightPanel(wx.Panel):
     def OnTagCheck(self, e):
         sel = e.GetIndex()
         tag = self.tagList.GetItemText(sel, 1)
-        if self.media_file:
-            self.media_file.add_tag(tag)
+        for mf in self.files_selected:
+            mf.add_tag(tag)
 
     def OnTagUncheck(self, e):
         sel = e.GetIndex()
         name = self.tagList.GetItemText(sel, 1)
-        if self.media_file:
-            self.media_file.del_tag(tag)
+
+        for mf in self.files_selected:
+            if not (tag in mf.tag_list):
+                return
+
+        for mf in self.files_selected:
+            mf.add_tag(tag)
 
     def OnTagAdd(self, e):
         tag = self.tagText.GetValue()
@@ -346,7 +357,8 @@ class RightPanel(wx.Panel):
             self.mm_window.leftPanel.add_tag(tag)
         if not (tag in self.tag_selected):
             self.tag_selected.append(tag)
-            self.media_file.add_tag(tag)
+            for mf in self.files_selected:
+                mf.add_tag(tag)
 
         self.update_tag()
 
@@ -363,10 +375,13 @@ class RightPanel(wx.Panel):
         self.tagText.SetValue('')
 
     def set_property(self):
-        if not self.media_file:
+        if len(self.files_selected) != 1:
             self.propertyList.DeleteAllItems()
             self.propertyList.InsertItem(0, 'Filename')
-            self.propertyList.SetItem(0, 1, '')
+            if not self.files_selected:
+                self.propertyList.SetItem(0, 1, '')
+            else:
+                self.propertyList.SetItem(0, 1, 'Multi-Files')
             self.propertyList.InsertItem(1, 'Path')
             self.propertyList.SetItem(1, 1, '')
             self.propertyList.InsertItem(2, 'Stars')
@@ -378,39 +393,41 @@ class RightPanel(wx.Panel):
             self.propertyList.InsertItem(5, 'LastPlayed')
             self.propertyList.SetItem(5, 1, '')
             return
+
+        media_file = self.files_selected[0]
         self.propertyList.DeleteAllItems()
         self.propertyList.InsertItem(0, 'Filename')
-        self.propertyList.SetItem(0, 1, self.media_file.filename)
+        self.propertyList.SetItem(0, 1, media_file.filename)
         self.propertyList.InsertItem(1, 'Path')
-        self.propertyList.SetItem(1, 1, self.media_file.abspath)
+        self.propertyList.SetItem(1, 1, media_file.abspath)
         self.propertyList.InsertItem(2, 'Stars')
-        if self.media_file.stars:
-            self.propertyList.SetItem(2, 1, '%d' % self.media_file.stars)
+        if media_file.stars:
+            self.propertyList.SetItem(2, 1, '%d' % media_file.stars)
         else:
             self.propertyList.SetItem(2, 1, '')
 
         self.propertyList.InsertItem(3, 'Size')
-        self.propertyList.SetItem(3, 1, '%dMB' % (self.media_file.size // (1024 * 1024)))
+        self.propertyList.SetItem(3, 1, '%dMB' % (media_file.size // (1024 * 1024)))
 
         self.propertyList.InsertItem(4, 'Duration')
-        if self.media_file.duration:
-            hours = self.media_file.duration // 3600
-            minutes = (self.media_file.duration - hours * 3600) // 60
-            seconds = int(self.media_file.duration) % 60
+        if media_file.duration:
+            hours = media_file.duration // 3600
+            minutes = (media_file.duration - hours * 3600) // 60
+            seconds = int(media_file.duration) % 60
             self.propertyList.SetItem(4, 1, '%2.2d:%2.2d:%2.2d' % (hours, minutes, seconds))
         else:
             self.propertyList.SetItem(4, 1, 'no info')
 
         self.propertyList.InsertItem(5, 'LastPlayed')
-        if self.media_file.lastplay:
-            self.propertyList.SetItem(5, 1, str(self.media_file.lastplay))
+        if media_file.lastplay:
+            self.propertyList.SetItem(5, 1, str(media_file.lastplay))
         else:
             self.propertyList.SetItem(5, 1, '')
 
-    def set_mediafile(self, mf):
-        self.media_file = mf
+    def set_mediafiles(self, mf_list):
+        self.files_selected = mf_list
 
-        if not mf:
+        if not self.files_selected:
             self.actor_list = []
             self.actor_selected = []
             self.tag_list = []
@@ -424,18 +441,33 @@ class RightPanel(wx.Panel):
             self.tagList.Disable()
             return
 
+        catalog = self.files_selected[0].catalog
+
         self.actor_list = []
-        for actor in mf.catalog.actor_list:
+        for actor in catalog.actor_list:
             self.actor_list.append(actor)
         self.actor_selected = []
-        for sactor in mf.actor_list:
-            self.actor_selected.append(sactor)
+        for sactor in self.actor_list:
+            all_found = True
+            for mf in self.files_selected:
+                if not (sactor in mf.actor_list):
+                    all_found = False
+                    break
+            if all_found:
+                self.actor_selected.append(sactor)
+
         self.tag_list = []
-        for tag in mf.catalog.tag_list:
+        for tag in catalog.tag_list:
             self.tag_list.append(tag)
         self.tag_selected = []
-        for stag in mf.tag_list:
-            self.tag_selected.append(stag)
+        for stag in self.tag_list:
+            all_found = True
+            for mf in self.files_selected:
+                if not (stag in mf.tag_list):
+                    all_found = False
+                    break
+            if all_found:
+                self.tag_selected.append(stag)
         self.update_actor()
         self.update_tag()
         self.set_property()
