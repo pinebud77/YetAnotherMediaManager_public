@@ -562,7 +562,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def update_view(self, update_period=None):
-        self.OnViewChange(update_period)
+        self.OnViewChange(vtype=None, update_period=update_period)
 
     def OnViewSmall(self, e):
         self.OnViewChange(SMALL_THUMBNAILS)
