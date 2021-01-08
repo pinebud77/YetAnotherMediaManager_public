@@ -6,7 +6,7 @@ import requests
 import platform
 import urllib.request
 
-from pyunpack import Archive
+#from pyunpack import Archive
 
 from settings import *
 from catalog import Catalog
