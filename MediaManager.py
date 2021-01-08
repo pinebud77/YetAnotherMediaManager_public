@@ -198,6 +198,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileSelect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
         #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
+        filesList.SetDoubleBuffered(True)
         self.filesList = filesList
 
         self.rightPanel = RightPanel(self, size=(300, -1))
@@ -330,7 +331,7 @@ class MediaManager(wx.Frame):
             self.select_mediafile(None)
             self.select_mediafile(mf)
 
-    def OnViewChange(self, vtype=None):
+    def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
             self.view_type = vtype
             if self.view_type == SMALL_THUMBNAILS:
@@ -343,6 +344,10 @@ class MediaManager(wx.Frame):
             for mf in self.catalog:
                 mf.imagelist_index = None
             self.files = []
+            update_period = 50
+
+        if update_period is None:
+            update_period = 200
 
         logging.debug('view loading started')
 
@@ -354,20 +359,24 @@ class MediaManager(wx.Frame):
                                     tags=self.leftPanel.tag_selected,
                                     filename=self.leftPanel.file_filter)
 
+        self.filesList.Freeze()
         self.leftPanel.Disable()
         self.rightPanel.set_mediafile(None)
         count = 0
         total = len(files)
         for mf in files:
             count += 1
-            if count % 25 == 0:
+            if count % update_period == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
+                self.filesList.Thaw()
                 wx.Yield()
+                self.filesList.Freeze()
             self.add_mediafile(mf)
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
         self.leftPanel.Enable()
+        self.filesList.Thaw()
 
         logging.debug('view loading finished')
 
@@ -552,8 +561,8 @@ class MediaManager(wx.Frame):
         else:
             return self.sort_positive
 
-    def update_view(self):
-        self.OnViewChange()
+    def update_view(self, update_period=None):
+        self.OnViewChange(update_period)
 
     def OnViewSmall(self, e):
         self.OnViewChange(SMALL_THUMBNAILS)
@@ -708,7 +717,7 @@ class MediaManager(wx.Frame):
         self.catalog = Catalog(db_abspath=yamm_file)
         self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
         self.catalog.open_database()
-        self.update_view()
+        self.update_view(update_period=50)
         self.leftPanel.set_mm_window(self)
         self.statusbar.SetStatusText('Start Scanning files...')
         self.OnSyncCatalog(None)
