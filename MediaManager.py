@@ -149,7 +149,7 @@ class MediaManager(wx.Frame):
         vbox.Add(tb, 0, flag=wx.EXPAND)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.leftPanel = LeftPanel(self, size=(300, -1))
+        self.leftPanel = LeftPanel(self, size=(200, -1))
         self.leftPanel.set_mm_window(self)
         hbox.Add(self.leftPanel, 0, flag=wx.EXPAND)
 
@@ -754,9 +754,9 @@ class MediaManager(wx.Frame):
         self.stop_sync()
         self.catalog.close_database()
         self.catalog = None
-        self.select_mediafile(None)
         self.leftPanel.set_mm_window(None)
-        self.rightPanel.set_mediafile(None)
+        for mf in self.files_selected:
+            self.deselect_file(mf)
         self.update_view()
 
     def mm_sync_cb(self, msg):
