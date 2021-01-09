@@ -45,6 +45,8 @@ class MediaManager(wx.Frame):
         super(MediaManager, self).__init__(*args, **kwargs)
 
         self.catalog = None
+        self.view_contents = settings.DEF_VIEW_CONTENTS
+        self.last_view_contents = None
         self.view_type = settings.DEF_VIEW_TYPE
         self.resized = False
         self.cat_thread = None
@@ -156,6 +158,16 @@ class MediaManager(wx.Frame):
         ivbox = wx.BoxSizer(wx.VERTICAL)
 
         ihbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.favRadio = wx.RadioButton(self, label='Favorites', style=wx.RB_GROUP)
+        ihbox.Add(self.favRadio, 0, flag=wx.EXPAND)
+        self.fileRadio = wx.RadioButton(self, label='Files')
+        ihbox.Add(self.fileRadio, 0, flag=wx.EXPAND)
+        if self.view_contents == VIEW_FILES:
+            self.fileRadio.SetValue(True)
+        else:
+            self.favRadio.SetValue(True)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnContentsRadio, self.favRadio)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnContentsRadio, self.fileRadio)
         ihbox.AddStretchSpacer()
         ihbox.Add(wx.StaticText(self, label='sort by :'), 0, wx.EXPAND)
         sort_choices = ('Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
@@ -231,9 +243,11 @@ class MediaManager(wx.Frame):
         self.thumbRightMenu = wx.Menu()
         menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
         menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Cover Image')
+        menuFavorite = self.thumbRightMenu.Append(wx.ID_ANY, 'Add to Favorites')
         menuThumbSave = self.thumbRightMenu.Append(wx.ID_ANY, 'Save as JPG file')
         self.Bind(wx.EVT_MENU, self.OnActor, menuActor)
         self.Bind(wx.EVT_MENU, self.OnCover, menuCover)
+        self.Bind(wx.EVT_MENU, self.OnFavorite, menuFavorite)
         self.Bind(wx.EVT_MENU, self.OnThumbSave, menuThumbSave)
 
         self.SetSizer(vbox)
@@ -265,11 +279,28 @@ class MediaManager(wx.Frame):
             except:
                 pass
 
+    def disable(self):
+        self.leftPanel.Disable()
+        self.favRadio.Disable()
+        self.fileRadio.Disable()
+
+    def enable(self):
+        self.leftPanel.Enable()
+        self.favRadio.Enable()
+        self.fileRadio.Enable()
+
     def get_toolbar_bitmap(self, bimg):
         dstream = io.BytesIO(bimg)
         image = wx.Image(dstream, type=wx.BITMAP_TYPE_PNG)
         image.Rescale(24, 24)
         return wx.Bitmap(image)
+
+    def OnContentsRadio(self, e):
+        if self.fileRadio.GetValue():
+            self.view_contents = VIEW_FILES
+        else:
+            self.view_contents = VIEW_FAVORITES
+        self.update_view()
 
     def OnHelpPage(self, e):
         try:
@@ -312,25 +343,44 @@ class MediaManager(wx.Frame):
         index = len(self.files)
         self.files.append(mf)
 
-        if mf.imagelist_index is None:
-            jpg_bytes = mf.get_coverjpg()
-            if jpg_bytes:
-                data_stream = io.BytesIO(jpg_bytes)
-                image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-            else:
-                image = wx.Image(360, 203)
-            image = self.get_scaled_image(self.image_list, image)
-            bmp = wx.Bitmap(image)
-            mf.imagelist_index = self.image_list.Add(bmp)
+        if self.view_contents == VIEW_FILES:
+            if mf.imagelist_index is None:
+                jpg_bytes = mf.get_coverjpg()
+                if jpg_bytes:
+                    data_stream = io.BytesIO(jpg_bytes)
+                    image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                else:
+                    image = wx.Image(360, 203)
+                image = self.get_scaled_image(self.image_list, image)
+                bmp = wx.Bitmap(image)
+                mf.imagelist_index = self.image_list.Add(bmp)
 
-        list_idx = self.filesList.InsertItem(index,
-                                             mf.filename,
-                                             mf.imagelist_index)
-        self.filesList.SetItemData(list_idx, index)
+            list_idx = self.filesList.InsertItem(index,
+                                                 mf.filename,
+                                                 mf.imagelist_index)
+            self.filesList.SetItemData(list_idx, index)
+        else:
+            for fav in mf.favorites:
+                if fav.imagelist_index is None:
+                    jpg_bytes = mf.get_thumbjpg(fav.thumb_id)
+                    if jpg_bytes:
+                        data_stream = io.BytesIO(jpg_bytes)
+                        image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                    else:
+                        image = wx.Image(360, 203)
+                    image = self.get_scaled_image(self.image_list, image)
+                    bmp = wx.Bitmap(image)
+                    fav.imagelist_index = self.image_list.Add(bmp)
 
-    def OnViewChange(self, vtype=None, update_period=None):
-        if self.view_type != vtype and vtype is not None:
-            self.view_type = vtype
+                list_idx = self.filesList.InsertItem(index,
+                                                     mf.filename,
+                                                     fav.imagelist_index)
+                self.filesList.SetItemData(list_idx, index)
+
+    def OnViewChange(self, vtype=None, update_period=None, force=False):
+        if force or (self.view_type != vtype and vtype is not None):
+            if vtype is not None:
+                self.view_type = vtype
             if self.view_type == SMALL_THUMBNAILS:
                 self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
             elif self.view_type == MEDIUM_THUMBNAILS:
@@ -361,7 +411,7 @@ class MediaManager(wx.Frame):
                                     filename=self.leftPanel.file_filter)
 
         self.filesList.Freeze()
-        self.leftPanel.Disable()
+        self.disable()
         count = 0
         total = len(files)
         for mf in files:
@@ -375,7 +425,7 @@ class MediaManager(wx.Frame):
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
-        self.leftPanel.Enable()
+        self.enable()
         self.filesList.Thaw()
 
         logging.debug('view loading finished')
@@ -480,7 +530,7 @@ class MediaManager(wx.Frame):
 
             index += 1
 
-    def select_file(self, mf):
+    def select_file(self, mf, update_thumbs=False):
         if mf in self.files_selected:
             return
 
@@ -491,9 +541,9 @@ class MediaManager(wx.Frame):
         self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
         self.file_last_selected = mf
-
         self.thumb_timer.Stop()
-        self.thumb_timer.Start(5, oneShot=True)
+        if not update_thumbs:
+            self.thumb_timer.Start(5, oneShot=True)
 
     def sort_filename(self, item1, item2):
         mf1 = self.files[item1]
@@ -573,8 +623,8 @@ class MediaManager(wx.Frame):
         else:
             return self.sort_positive
 
-    def update_view(self, update_period=None):
-        self.OnViewChange(vtype=None, update_period=update_period)
+    def update_view(self, force=False, update_period=None):
+        self.OnViewChange(vtype=None, update_period=update_period, force=force)
 
     def OnViewSmall(self, e):
         self.OnViewChange(SMALL_THUMBNAILS)
@@ -590,6 +640,8 @@ class MediaManager(wx.Frame):
 
     def OnCover(self, e):
         mf = self.file_last_selected
+        if mf is None:
+            return
         logging.info('cover selected for %s' % mf)
         mf.set_cover_id(self.thumb_sel)
         for mf_i in range(len(self.files)):
@@ -605,6 +657,17 @@ class MediaManager(wx.Frame):
         bmp = wx.Bitmap(image)
         self.image_list.Replace(mf_i, bmp)
         self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
+
+    def OnFavorite(self, e):
+        mf = self.file_last_selected
+        if not mf:
+            return
+        if not mf.thumbnails:
+            return
+        thumb = mf.thumbnails[self.thumb_sel]
+        mf.add_favorite(thumb[0])
+        self.update_view()
+        self.select_file(mf, update_thumbs=True)
 
     def OnThumbSave(self, e):
         if not self.file_last_selected:
@@ -804,6 +867,7 @@ class MediaManager(wx.Frame):
 
     def OnClose(self, e):
         logging.info('closing application')
+        settings.DEF_VIEW_CONTENTS = self.view_contents
         settings.DEF_VIEW_TYPE = self.view_type
         settings.DEF_SORT_METHOD = self.sort_method
         settings.DEF_SORT_ASCEND = self.sort_ascend

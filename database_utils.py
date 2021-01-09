@@ -265,7 +265,7 @@ def add_thumbnails(conn, file_id, thumb_list):
     conn.commit()
 
 
-sql_get_thumbnails = """SELECT time, jpg
+sql_get_thumbnails = """SELECT time, jpg, id
                         FROM thumbnail
                         WHERE file_id=?;
                      """
@@ -289,6 +289,17 @@ def del_thumbnails(conn, file_id):
     c = conn.cursor()
     c.execute(sql_del_thumbnails, (file_id,))
     conn.commit()
+
+
+sql_get_thumbnail_from_id = """SELECT id, file_id, time, jpg
+                               FROM thumbnail
+                               WHERE id=?;"""
+
+def get_thumbnail_from_id(conn, thumb_id):
+    c = conn.cursor()
+    c.execute(sql_get_thumbnail_from_id, (thumb_id,))
+    rows = c.fetchall()
+    return rows[0]
 
 
 sql_create_cover_table = """CREATE TABLE IF NOT EXISTS cover (
@@ -475,3 +486,64 @@ def get_tag_list(conn):
     c = conn.cursor()
     c.execute(sql_get_tag)
     return c.fetchall()
+
+
+sql_create_favorite_table = """CREATE TABLE IF NOT EXISTS favorite(
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                file_id INTEGER,
+                                thumb_id INTEGER,
+                                CONSTRAINT fk_file_id
+                                    FOREIGN KEY (file_id)
+                                    REFERENCES file(id)
+                                    ON DELETE CASCADE,
+                                CONSTRAINT fk_thumb_id
+                                    FOREIGN KEY (thumb_id)
+                                    REFERENCES thumbnail(id));"""
+
+def create_favorite_table(conn):
+    c = conn.cursor()
+    c.execute(sql_create_favorite_table)
+    conn.commit()
+
+
+sql_add_favorite = """INSERT INTO favorite (file_id, thumb_id)
+                      VALUES(?, ?);"""
+
+def add_favorite(conn, file_id, thumb_id):
+    c = conn.cursor()
+    c.execute(sql_add_favorite, (file_id, thumb_id,))
+    conn.commit()
+
+
+sql_get_favorite_list = """SELECT id, file_id, thumb_id
+                           FROM favorite;"""
+
+def get_third_element(l):
+    return l[2]
+
+def get_favorite_list(conn):
+    c = conn.cursor()
+    c.execute(sql_get_favorite_list)
+    rows = c.fetchall()
+    rows.sort(key=get_third_element)
+    return rows
+
+
+sql_delete_favorite = """DELETE FROM favorites
+                         WHERE id=?;"""
+
+def del_favorite(conn, fav_id):
+    c = conn.cursor()
+    c.execute(sql_delete_favorite, (fav_id,))
+    conn.commit()
+
+
+sql_get_favorite_id = """SELECT id
+                         FROM favorite
+                         WHERE file_id=? AND thumb_id=?;"""
+
+def get_favorite_id(conn, file_id, thumb_id):
+    c = conn.cursor()
+    c.execute(sql_get_favorite_id, (file_id, thumb_id,))
+    rows = c.fetchall()
+    return rows[0][0]

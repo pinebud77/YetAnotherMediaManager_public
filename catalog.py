@@ -128,6 +128,19 @@ class Catalog(list):
                     mf.cover = jpg
                     break
 
+        #load favorite table
+        db_utils.create_favorite_table(self.db_conn)
+        db_favorite_list = db_utils.get_favorite_list(self.db_conn)
+        for fav in db_favorite_list:
+            file_id = fav[1]
+            thumb_id = fav[2]
+            for mf in self:
+                if mf.id != file_id:
+                    continue
+                time = db_utils.get_thumbnail_from_id(self.db_conn, thumb_id)[2]
+                fav = media_file.Favorite(mf, time, fav[0], thumb_id)
+                mf.favorites.append(fav)
+
     def add_actor(self, name, picture=None):
         if name in self.actor_list:
             return

@@ -23,9 +23,17 @@ from pathlib import Path
 
 DEF_SETTINGS_FILENAME = '.yamm_settings'
 
+VIEW_FAVORITES = 1
+VIEW_FILES = 0
+contents_strings = ('files',
+                    'favorites')
+
 LARGE_THUMBNAILS = 0
 MEDIUM_THUMBNAILS = 1
 SMALL_THUMBNAILS = 2
+size_strings = ('large',
+                'medium',
+                'small',)
 
 FILTER_SORT_FILENAME = 0
 FILTER_SORT_TIME = 1
@@ -33,8 +41,15 @@ FILTER_SORT_LASTPLAY = 2
 FILTER_SORT_DURATION = 3
 FILTER_SORT_PATH = 4
 FILTER_SORT_SIZE = 5
+sort_strings = ('filename',
+                'time',
+                'lastplay',
+                'duration',
+                'path',
+                'size',)
 
 #main window settings
+DEF_VIEW_CONTENTS = VIEW_FILES
 DEF_VIEW_TYPE = MEDIUM_THUMBNAILS
 DEF_SORT_METHOD = FILTER_SORT_PATH
 DEF_SORT_ASCEND = True
@@ -63,6 +78,7 @@ def load_settings():
     except:
         return
 
+    global DEF_VIEW_CONTENTS
     global DEF_VIEW_TYPE
     global DEF_SORT_METHOD
     global DEF_SORT_ASCEND
@@ -80,8 +96,9 @@ def load_settings():
     global DEF_OPEN_SEEK
 
     try:
-        DEF_VIEW_TYPE = d['view_type']
-        DEF_SORT_METHOD = d['sort_method']
+        DEF_VIEW_CONTENTS = contents_strings.index(d['view_contents'])
+        DEF_VIEW_TYPE = size_strings.index(d['view_type'])
+        DEF_SORT_METHOD = sort_strings.index(d['sort_method'])
         DEF_SORT_ASCEND = d['sort_ascend']
         DEF_THUMBS_HEIGHT = d['thumbs_height']
         DEF_FILE_EXTENTION = d['file_extention']
@@ -102,6 +119,7 @@ def load_settings():
 def store_settings():
     d = dict()
 
+    global DEF_VIEW_CONTENTS
     global DEF_VIEW_TYPE
     global DEF_SORT_METHOD
     global DEF_SORT_ASCEND
@@ -118,8 +136,9 @@ def store_settings():
     global DEF_OPEN_FILE
     global DEF_OPEN_SEEK
 
-    d['view_type'] = DEF_VIEW_TYPE
-    d['sort_method'] = DEF_SORT_METHOD
+    d['view_contents'] = contents_strings[DEF_VIEW_CONTENTS]
+    d['view_type'] = size_strings[DEF_VIEW_TYPE]
+    d['sort_method'] = sort_strings[DEF_SORT_METHOD]
     d['sort_ascend'] = DEF_SORT_ASCEND
     d['thumbs_height'] = DEF_THUMBS_HEIGHT
     d['file_extention'] = DEF_FILE_EXTENTION

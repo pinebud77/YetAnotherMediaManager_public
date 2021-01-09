@@ -1,12 +1,6 @@
 import logging
 import sys
 import getopt
-import tempfile
-import requests
-import platform
-import urllib.request
-
-#from pyunpack import Archive
 
 from settings import *
 from catalog import Catalog
@@ -14,22 +8,6 @@ from catalog import Catalog
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 60
-
-
-def check_ffmpeg():
-    if os.path.exists(os.path.join(tempfile.gettempdir(), 'ffmpeg.exe')):
-        logging.info('ffmpeg.exe exists, no need to download')
-        return
-    logging.info('ffmpeg.exe does not exist, downloading ffmpeg to the temp directory')
-    url = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z'
-    r = requests.get(url)
-    filename = r.url.split('/')[-1]
-    tfile = os.path.join(tempfile.gettempdir(), filename)
-    tfile_noext = '.'.join(tfile.split('.')[:-1])
-    urllib.request.urlretrieve(url, tfile)
-    Archive(tfile).extractall(tempfile.gettempdir())
-    os.rename(os.path.join(tfile_noext, 'bin', 'ffmpeg.exe'),
-              os.path.join(tempfile.gettempdir(), 'ffmpeg.exe'))
 
 
 def wmain(yamm_file=None):

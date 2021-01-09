@@ -25,6 +25,11 @@ from moviepy.editor import VideoFileClip
 from settings import *
 import database_utils as db_utils
 
+
+def get_time(fav):
+    return fav.time
+
+
 class TopDirectory:
     def __init__(self, cat, abspath, comment=None):
         self.catalog = cat
@@ -42,6 +47,23 @@ class TopDirectory:
 
     def __str__(self):
         return 'topdir id:%d abspath:%s' % (self.id, self.abspath)
+
+
+class Favorite:
+    def __init__(self, mf, time, id=None, thumb_id=None):
+        self.mediafile = mf
+        self.time = time
+        self.id = id
+        self.thumb_id = thumb_id
+        self.imagelist_index =None
+
+    def store(self):
+        db_conn = self.mediafile.catalog.db_conn
+        db_utils.add_favorite(db_conn, self.mediafile.id, self.thumb_id)
+
+    def delete(self):
+        db_conn = self.mediafile.catalog.db_conn
+        db_utils.del_favorite(db_conn, self.id)
 
 
 class MediaFile:
@@ -63,6 +85,7 @@ class MediaFile:
         self.actor_list = []
         self.thumbnails = None
         self.cover = None
+        self.favorites = []
 
         self.abspath = os.path.join(topdir.abspath, reldir, filename)
         self.imagelist_index = None
@@ -133,7 +156,6 @@ class MediaFile:
     def save_thumbnails(self):
         if not self.thumbnails:
             return
-        #db_utils.del_thumbnails(self.catalog.db_conn, self.id)
         db_utils.add_thumbnails(self.catalog.db_conn, self.id, self.thumbnails)
 
     def load_thumbnails(self):
@@ -149,6 +171,10 @@ class MediaFile:
         if self.thumbnails:
             return self.thumbnails
         return None
+
+    def get_thumbjpg(self, thumb_id):
+        jpg = db_utils.get_thumbnail_from_id(self.catalog.db_conn, thumb_id)[3]
+        return jpg
 
     def get_coverjpg(self, read_db=True):
         if self.cover:
@@ -206,6 +232,30 @@ class MediaFile:
             return
         db_utils.del_tag(self.catalog.db_conn, tag, self.id)
         self.tag_list.remove(tag)
+
+    def add_favorite(self, time):
+        for fav in self.favorites:
+            if time == fav.time:
+                return
+
+        clean_thumbnails = False
+        if not self.thumbnails:
+            self.load_thumbnails()
+            clean_thumbnails = True
+
+        for thumb in self.thumbnails:
+            if thumb[0] != time:
+                continue
+            thumb_id = thumb[2]
+            db_utils.add_favorite(self.catalog.db_conn, self.id, thumb_id)
+            fav_id = db_utils.get_favorite_id(self.catalog.db_conn, self.id, thumb_id)
+            fav = Favorite(self, time, id=fav_id, thumb_id=thumb_id)
+            self.favorites.append(fav)
+            self.favorites.sort(key=get_time)
+            break
+
+        if clean_thumbnails:
+            self.thumbnails = None
 
     def __str__(self):
         return self.abspath
