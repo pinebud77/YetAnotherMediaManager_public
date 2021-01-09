@@ -26,6 +26,7 @@ Command Line Arguments
 * -q (--quiet) : print no message
 
 Planned Features
+* Managing Favorite scenes
 * File deletion
 * Creating GIFs from thumbnails
 * File deletion inside app
