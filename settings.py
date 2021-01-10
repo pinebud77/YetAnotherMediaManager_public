@@ -72,6 +72,10 @@ DEF_OPEN_EXE = 'C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe'
 DEF_OPEN_FILE = '%s'
 DEF_OPEN_SEEK = '/seek=%d'
 
+contents_comment_text = '''view_contents: files or favorites'''
+type_comment_text = '''view_type: small, medium or large'''
+sort_comment_text = '''sort_method: filename, time, lastplay, duration, path, size or resolution'''
+
 def load_settings():
     path = os.path.join(Path.home(), DEF_SETTINGS_FILENAME)
     try:
@@ -138,6 +142,9 @@ def store_settings():
     global DEF_OPEN_FILE
     global DEF_OPEN_SEEK
 
+    d['view_contents_ex'] = contents_strings
+    d['view_type_ex'] = size_strings
+    d['sort_method_ex'] = sort_strings
     d['view_contents'] = contents_strings[DEF_VIEW_CONTENTS]
     d['view_type'] = size_strings[DEF_VIEW_TYPE]
     d['sort_method'] = sort_strings[DEF_SORT_METHOD]

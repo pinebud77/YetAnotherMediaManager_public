@@ -196,7 +196,8 @@ class MediaManager(wx.Frame):
                                             wx.BORDER_SUNKEN |
                                             wx.LC_AUTOARRANGE |
                                             wx.NO_FULL_REPAINT_ON_RESIZE |
-                                            wx.CLIP_CHILDREN)
+                                            wx.CLIP_CHILDREN |
+                                            wx.LC_EDIT_LABELS)
         filesList.SetDoubleBuffered(True)
         filesList.InsertColumn(0, 'thumbnail', width=360)
         filesList.InsertColumn(1, 'filename', width=200)
@@ -205,17 +206,17 @@ class MediaManager(wx.Frame):
         filesList.InsertColumn(4, 'path', width=360)
         ivbox.Add(filesList, 1, flag=wx.ALL|wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
-
         if self.view_type == SMALL_THUMBNAILS:
             self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
         elif self.view_type == MEDIUM_THUMBNAILS:
             self.image_list = wx.ImageList(DEF_MEDIUM_RESOLUTION[0], DEF_MEDIUM_RESOLUTION[1])
-        elif self.view_type == LARGE_THUMBNAILS:
+        else:
             self.image_list = wx.ImageList(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
         filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileDeselect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnFileEdit, filesList)
         filesList.Bind(wx.EVT_KEY_DOWN, self.OnFilesKeyDown)
         filesList.SetDoubleBuffered(True)
         self.filesList = filesList
@@ -870,6 +871,20 @@ class MediaManager(wx.Frame):
             subprocess.Popen(run_list)
         self.file_last_selected.set_lastplayed(datetime.datetime.now())
         self.rightPanel.set_mediafiles(self.files_selected)
+
+    def OnFileEdit(self, e):
+        orig_filename = self.filesList.GetItemText(e.GetIndex())
+        new_filename = e.GetLabel()
+        if orig_filename.lower()[-4:] != new_filename.lower()[-4:]:
+            e.Veto()
+            return
+        mf = self.files[self.filesList.GetItemData(e.GetIndex())]
+        res = mf.rename(new_filename)
+        if not res:
+            e.Veto()
+            return
+        if not self.fileRadio.GetValue():
+            self.update_view()
 
     def OnThumbRight(self, e):
         self.thumb_item_clicked = e.GetText()

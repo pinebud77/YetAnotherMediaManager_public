@@ -296,6 +296,16 @@ class MediaFile:
 
         return fav
 
+    def rename(self, new_name):
+        try:
+            os.rename(self.abspath, os.path.join(self.topdir.abspath, self.reldir, new_name))
+        except Exception as e:
+            logging.error(e)
+            return False
+        self.filename = new_name
+        db_utils.update_file(self.catalog.db_conn, self)
+        return True
+
     def del_favorite(self, fav):
         if fav not in self.favorites:
             return

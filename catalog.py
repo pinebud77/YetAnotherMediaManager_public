@@ -363,6 +363,13 @@ class Catalog(list):
                     return
                 del_db_list.append(onlydb)
 
+        for mf in del_db_list:
+            if self.kill_thread:
+                return
+            db_utils.del_file_nocommit(self.db_conn, mf)
+            self.remove(mf)
+            self.db_conn.commit()
+
         total = len(add_db_list)
         count = 0
         while add_db_list:
@@ -385,13 +392,6 @@ class Catalog(list):
                 db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
             self.append(mf)
             del add_db_list[0]
-
-        for mf in del_db_list:
-            if self.kill_thread:
-                return
-            db_utils.del_file_nocommit(self.db_conn, mf)
-            self.remove(mf)
-            self.db_conn.commit()
 
         if msg_cb is not None:
             msg_cb('Sync Finished')
