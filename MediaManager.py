@@ -122,22 +122,22 @@ class MediaManager(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         tb = wx.ToolBar(self, -1)
-        tbNew = tb.AddTool(wx.ID_ANY, 'New', self.get_toolbar_bitmap(icons.cat_new))
-        tbOpen = tb.AddTool(wx.ID_ANY, 'Open', self.get_toolbar_bitmap(icons.cat_open))
-        tbEdit = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_edit))
-        tbSync = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_sync))
-        tbStop = tb.AddTool(wx.ID_ANY, 'Edit', self.get_toolbar_bitmap(icons.cat_stop))
-        tbClose = tb.AddTool(wx.ID_ANY, 'Close', self.get_toolbar_bitmap(icons.cat_close))
+        tbNew = tb.AddTool(wx.ID_ANY, 'New Catalog', self.get_toolbar_bitmap(icons.cat_new))
+        tbOpen = tb.AddTool(wx.ID_ANY, 'Open Catalog file', self.get_toolbar_bitmap(icons.cat_open))
+        tbEdit = tb.AddTool(wx.ID_ANY, 'Edit Catalog file', self.get_toolbar_bitmap(icons.cat_edit))
+        tbSync = tb.AddTool(wx.ID_ANY, 'Sync Catalog file', self.get_toolbar_bitmap(icons.cat_sync))
+        tbStop = tb.AddTool(wx.ID_ANY, 'Stop sync of Catalog file', self.get_toolbar_bitmap(icons.cat_stop))
+        tbClose = tb.AddTool(wx.ID_ANY, 'Close Catalog file', self.get_toolbar_bitmap(icons.cat_close))
         tb.AddSeparator()
-        tbSmall = tb.AddTool(wx.ID_ANY, 'Small file list', self.get_toolbar_bitmap(icons.file_small))
-        tbMedium = tb.AddTool(wx.ID_ANY, 'Medium file list', self.get_toolbar_bitmap(icons.file_medium))
-        tbLarge = tb.AddTool(wx.ID_ANY, 'Large file list', self.get_toolbar_bitmap(icons.file_large))
+        tbSmall = tb.AddTool(wx.ID_ANY, 'Small file list image', self.get_toolbar_bitmap(icons.file_small))
+        tbMedium = tb.AddTool(wx.ID_ANY, 'Medium file list image', self.get_toolbar_bitmap(icons.file_medium))
+        tbLarge = tb.AddTool(wx.ID_ANY, 'Large file list image', self.get_toolbar_bitmap(icons.file_large))
         tb.AddSeparator()
-        tbDelete = tb.AddTool(wx.ID_ANY, 'Delete files or favorites', self.get_toolbar_bitmap(icons.file_delete))
+        tbDelete = tb.AddTool(wx.ID_ANY, 'Delete selected files or favorites', self.get_toolbar_bitmap(icons.file_delete))
         tb.AddSeparator()
         tbExit = tb.AddTool(wx.ID_ANY, 'Exit Application', self.get_toolbar_bitmap(icons.app_exit))
         tb.AddSeparator()
-        tbHome = tb.AddTool(wx.ID_ANY, 'Open Homepage', self.get_toolbar_bitmap(icons.help_home))
+        tbHome = tb.AddTool(wx.ID_ANY, 'Open Github homepage', self.get_toolbar_bitmap(icons.help_home))
         tbAbout = tb.AddTool(wx.ID_ANY, 'About this Application', self.get_toolbar_bitmap(icons.help_about))
 
         tb.Realize()
@@ -250,13 +250,11 @@ class MediaManager(wx.Frame):
 
 
         self.thumbRightMenu = wx.Menu()
-        menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
-        menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Cover Image')
         menuFavorite = self.thumbRightMenu.Append(wx.ID_ANY, 'Add to Favorites')
+        menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Cover Image')
         menuThumbSave = self.thumbRightMenu.Append(wx.ID_ANY, 'Save as JPG file')
-        self.Bind(wx.EVT_MENU, self.OnActor, menuActor)
-        self.Bind(wx.EVT_MENU, self.OnCover, menuCover)
         self.Bind(wx.EVT_MENU, self.OnFavorite, menuFavorite)
+        self.Bind(wx.EVT_MENU, self.OnCover, menuCover)
         self.Bind(wx.EVT_MENU, self.OnThumbSave, menuThumbSave)
 
         self.SetSizer(vbox)
@@ -272,8 +270,8 @@ class MediaManager(wx.Frame):
             f.write(icons.app_icon)
             f.close()
             self.SetIcon(wx.Icon(icopath))
-        except:
-            pass
+        except Exception as e:
+            logging.error('setting app icon failed')
 
         self.SetSize((720, 640))
         self.SetTitle('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR))
@@ -292,11 +290,15 @@ class MediaManager(wx.Frame):
         self.leftPanel.Disable()
         self.favRadio.Disable()
         self.fileRadio.Disable()
+        self.sortChoice.Disable()
+        self.ascendChoice.Disable()
 
     def enable(self):
         self.leftPanel.Enable()
         self.favRadio.Enable()
         self.fileRadio.Enable()
+        self.sortChoice.Enable()
+        self.ascendChoice.Enable()
 
     def get_toolbar_bitmap(self, bimg):
         dstream = io.BytesIO(bimg)
@@ -311,6 +313,7 @@ class MediaManager(wx.Frame):
             self.filesList.Select(list_idx, on=0)
 
         for mf in selected:
+            logging.debug('deleting file : %s' % mf)
             try:
                 self.catalog.del_file(mf)
             except Exception as e:
@@ -343,6 +346,7 @@ class MediaManager(wx.Frame):
             self.filesList.Select(list_idx, on=0)
 
         for fav in selected:
+            logging.debug('delete favorite : %s' % fav)
             fav.mediafile.del_favorite(fav)
             index = self.favorites.index(fav)
             target_idx = None
@@ -375,10 +379,7 @@ class MediaManager(wx.Frame):
     def OnFilesKeyDown(self, e):
         if e.GetKeyCode() != wx.WXK_DELETE:
             return
-        if self.fileRadio.GetValue():
-            self.delete_files()
-        else:
-            self.delete_favorites()
+        self.OnFileDelete(None)
 
     def OnContentsRadio(self, e):
         if self.fileRadio.GetValue():
@@ -388,10 +389,12 @@ class MediaManager(wx.Frame):
         self.update_view()
 
     def OnHelpPage(self, e):
+        logging.debug('opening Github homepage : %s' % GITHUB_URL)
         try:
             webbrowser.open(GITHUB_URL)
-        except:
-            pass
+        except Exception as e:
+            logging.error('calling webrowser failed')
+            logging.error(e)
 
     def OnHelpAbout(self, e):
         wx.MessageBox('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR),
@@ -413,6 +416,10 @@ class MediaManager(wx.Frame):
             self.filesList.SortItems(self.sort_path)
         elif self.sort_method == FILTER_SORT_SIZE:
             self.filesList.SortItems(self.sort_size)
+        else:
+            logging.error('not a defined sorting method')
+            self.sort_method = FILTER_SORT_PATH
+            self.filesList.SortItems(self.sort_path)
 
     def OnAscendChange(self, e):
         if self.ascendChoice.GetSelection() == 0:
@@ -421,8 +428,12 @@ class MediaManager(wx.Frame):
         else:
             self.sort_ascend = True
             self.sort_positive = 1
-        logging.debug('sorting ascend changed to %d' % self.ascendChoice.GetSelection())
         self.OnSortChange(None)
+
+        if self.sort_ascend:
+            logging.debug('sorting ascend changed to ascend')
+        else:
+            logging.debug('sorting ascend changed to descend')
 
     def add_mediafile(self, mf):
         if self.view_contents == VIEW_FILES:
@@ -535,6 +546,7 @@ class MediaManager(wx.Frame):
             for mf in files:
                 if not (mf in self.files):
                     self.add_mediafile(mf)
+                    logging.debug('file added to the view : %s' % mf)
 
             mf_i = 0
             while mf_i < len(self.files):
@@ -582,8 +594,6 @@ class MediaManager(wx.Frame):
     def deselect_file(self, mf):
         if not (mf in self.files_selected):
             return
-
-        logging.debug('media file deselected : %s' %mf)
 
         mf.thumbnails = None
         self.files_selected.remove(mf)
@@ -639,12 +649,9 @@ class MediaManager(wx.Frame):
         if mf in self.files_selected:
             return
 
-        logging.debug('media file selected : %s' % mf)
-
         self.files_selected.append(mf)
         self.rightPanel.set_mediafiles(self.files_selected)
         self.file_last_selected = mf
-
         if update_thumbs:
             self.thumbsList.DeleteAllItems()
             self.thumbs_list.RemoveAll()
@@ -756,9 +763,6 @@ class MediaManager(wx.Frame):
     def OnViewLarge(self, e):
         self.OnViewChange(LARGE_THUMBNAILS)
 
-    def OnActor(self, e):
-        wx.MessageBox('not implemented yet', 'still working on', wx.OK | wx.ICON_ERROR)
-
     def OnCover(self, e):
         mf = self.file_last_selected
         if mf is None:
@@ -846,22 +850,18 @@ class MediaManager(wx.Frame):
         sel = self.filesList.GetItemData(e.GetIndex())
         if self.fileRadio.GetValue():
             mf = self.files[sel]
-            logging.debug('file selected from view : %s' % mf)
             self.select_file(mf)
         else:
             fav = self.favorites[sel]
-            logging.debug('favorite selected from view : %s' % fav)
             self.select_favorite(fav)
 
     def OnFileDeselect(self, e):
         sel = self.filesList.GetItemData(e.GetIndex())
         if self.fileRadio.GetValue():
             mf = self.files[sel]
-            logging.debug('file deselected from view : %s' % mf)
             self.deselect_file(mf)
         else:
             fav = self.favorites[sel]
-            logging.debug('favorite deselected from view : %s' % fav)
             self.deselect_favorite(fav)
 
     def OnNewCatalog(self, e):
