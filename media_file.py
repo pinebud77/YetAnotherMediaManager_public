@@ -147,6 +147,11 @@ class MediaFile:
         thumbnails = []
         for time in range(0, duration, period):
             if self.catalog.kill_thread:
+                try:
+                    clip.close()
+                    del clip
+                except Exception e:
+                    logging.error(e)
                 return
             try:
                 frame = clip.get_frame(time)
@@ -165,7 +170,7 @@ class MediaFile:
 
         try:
             clip.close()
-            del(clip)
+            del clip
         except Exception as e:
             logging.error(e)
             return
@@ -222,7 +227,7 @@ class MediaFile:
             self.width = clip.size[0]
             self.height = clip.size[1]
             clip.close()
-            del(clip)
+            del clip
         except Exception as e:
             logging.error(e)
             return

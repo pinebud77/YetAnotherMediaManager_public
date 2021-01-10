@@ -347,7 +347,7 @@ class RightPanel(wx.Panel):
         self.update_actor()
 
     def OnActorEdit(self, e):
-        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex),
+        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
                                                   e.GetLabel())
         if not res:
             e.Veto()

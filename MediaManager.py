@@ -923,6 +923,8 @@ class MediaManager(wx.Frame):
                 pass
             self.catalog = Catalog(db_abspath=abspath)
             self.catalog.open_database()
+            self.leftPanel.set_mm_window(self)
+            self.enable()
 
             for n in range(catDialog.topList.GetCount()):
                 self.catalog.add_topdir(catDialog.topList.GetString(n))
