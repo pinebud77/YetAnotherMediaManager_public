@@ -133,10 +133,12 @@ class MediaManager(wx.Frame):
         tbMedium = tb.AddTool(wx.ID_ANY, 'Medium file list', self.get_toolbar_bitmap(icons.file_medium))
         tbLarge = tb.AddTool(wx.ID_ANY, 'Large file list', self.get_toolbar_bitmap(icons.file_large))
         tb.AddSeparator()
-        tbHome = tb.AddTool(wx.ID_ANY, 'Open Homepage', self.get_toolbar_bitmap(icons.help_home))
-        tbAbout = tb.AddTool(wx.ID_ANY, 'About this Application', self.get_toolbar_bitmap(icons.help_about))
+        tbDelete = tb.AddTool(wx.ID_ANY, 'Delete files or favorites', self.get_toolbar_bitmap(icons.file_delete))
         tb.AddSeparator()
         tbExit = tb.AddTool(wx.ID_ANY, 'Exit Application', self.get_toolbar_bitmap(icons.app_exit))
+        tb.AddSeparator()
+        tbHome = tb.AddTool(wx.ID_ANY, 'Open Homepage', self.get_toolbar_bitmap(icons.help_home))
+        tbAbout = tb.AddTool(wx.ID_ANY, 'About this Application', self.get_toolbar_bitmap(icons.help_about))
 
         tb.Realize()
         self.Bind(wx.EVT_TOOL, self.OnNewCatalog, tbNew)
@@ -148,6 +150,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_TOOL, self.OnViewSmall, tbSmall)
         self.Bind(wx.EVT_TOOL, self.OnViewMedium, tbMedium)
         self.Bind(wx.EVT_TOOL, self.OnViewLarge, tbLarge)
+        self.Bind(wx.EVT_TOOL, self.OnFileDelete, tbDelete)
         self.Bind(wx.EVT_TOOL, self.OnHelpAbout, tbAbout)
         self.Bind(wx.EVT_TOOL, self.OnHelpPage, tbHome)
         self.Bind(wx.EVT_TOOL, self.OnClose, tbExit)
@@ -362,6 +365,12 @@ class MediaManager(wx.Frame):
         self.favorites_selected = []
         self.filesList.Select(-1)
         self.filesList.Thaw()
+
+    def OnFileDelete(self, e):
+        if self.fileRadio.GetValue():
+            self.delete_files()
+        else:
+            self.delete_favorites()
 
     def OnFilesKeyDown(self, e):
         if e.GetKeyCode() != wx.WXK_DELETE:
