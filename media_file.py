@@ -128,17 +128,6 @@ class MediaFile:
         logging.debug('creating thumbnail : %s' % self)
         try:
             clip = VideoFileClip(self.abspath, audio=False)
-            self.width = clip.size[0]
-            self.height = clip.size[1]
-            clip.close()
-            del(clip)
-        except Exception as e:
-            logging.error(e)
-            return
-
-        width, height = self.get_resolution(width, height, self.width, self.height)
-        try:
-            clip = VideoFileClip(self.abspath, target_resolution=(height, width), audio=False)
         except Exception as e:
             logging.error(e)
             return
@@ -165,6 +154,7 @@ class MediaFile:
                 logging.error(e)
                 return
             p = Image.fromarray(frame)
+            p.thumbnail((width, height,))
 
             byte_arr = io.BytesIO()
             p.save(byte_arr, format='JPEG')
