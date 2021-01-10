@@ -382,8 +382,6 @@ class Catalog(list):
         while add_db_list:
             mf = add_db_list[0]
             del add_db_list[0]
-            if self.kill_thread:
-                return
             count += 1
             t = threading.Thread(target=self.sync_thread_func, args=(mf,))
             t.start()
@@ -395,6 +393,9 @@ class Catalog(list):
             for t in thread_list:
                 t.join()
             thread_list = []
+
+            if self.kill_thread:
+                return
 
             for mf in self.thread_files:
                 if mf.thumbnails:
