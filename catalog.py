@@ -23,6 +23,8 @@ import logging
 import sqlite3
 import datetime
 import re
+import threading
+import multiprocessing
 
 from settings import *
 import media_file
@@ -60,6 +62,7 @@ class Catalog(list):
         self.db_conn = None
         self.extension_list = extension_list
         self.kill_thread = False
+        self.thread_files = []
 
     def open_database(self):
         try:
@@ -372,31 +375,53 @@ class Catalog(list):
             self.remove(mf)
             self.db_conn.commit()
 
+        cpu_count = multiprocessing.cpu_count()
+        cpu_count -= 1
+        if not cpu_count:
+            cpu_count = 1
+
         total = len(add_db_list)
         count = 0
+        thread_list = []
         while add_db_list:
             mf = add_db_list[0]
-            mf.loadinfo()
-            if msg_cb is not None:
-                count += 1
-                msg_cb('Adding : %s (%d/%d)' % (mf.filename, count, total))
-            mf.create_thumbnails()
             if self.kill_thread:
                 return
-            if mf.thumbnails:
-                cover_jpg = mf.thumbnails[int(len(mf.thumbnails) * 0.7)][1]
-            db_utils.add_file_nocommit(self.db_conn, mf)
-            self.db_conn.commit()
-            db_utils.set_file_id(self.db_conn, mf)
-            if mf.thumbnails:
-                mf.save_thumbnails()
-                db_utils.del_cover(self.db_conn, mf.id)
-                db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
-            self.append(mf)
+            count += 1
+            t = threading.Thread(target=self.sync_thread_func, args=(mf, count, total, msg_cb))
+            t.start()
+            thread_list.append(t)
             del add_db_list[0]
+            if count % cpu_count:
+                continue
+
+            for t in thread_list:
+                t.join()
+            thread_list = []
+
+            for mf in self.thread_files:
+                if mf.thumbnails:
+                    cover_jpg = mf.thumbnails[int(len(mf.thumbnails) * 0.7)][1]
+                db_utils.add_file_nocommit(self.db_conn, mf)
+                self.db_conn.commit()
+                db_utils.set_file_id(self.db_conn, mf)
+                if mf.thumbnails:
+                    mf.save_thumbnails()
+                    db_utils.del_cover(self.db_conn, mf.id)
+                    db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
+                self.append(mf)
 
         if msg_cb is not None:
             msg_cb('Sync Finished')
+
+    def sync_thread_func(self, mf, count, total, msg_cb):
+        mf.loadinfo()
+        if msg_cb is not None:
+            msg_cb('Adding: %s (%d/%d)' % (mf.filename, count, total))
+        if self.kill_thread:
+            return
+        mf.create_thumbnails()
+        self.thread_files.append(mf)
 
     def del_file(self, mf):
         if mf not in self:
