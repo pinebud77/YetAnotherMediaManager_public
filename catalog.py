@@ -148,8 +148,9 @@ class Catalog(list):
             for mf in self:
                 if mf.id != file_id:
                     continue
-                time = db_utils.get_thumbnail_from_id(self.db_conn, thumb_id)[2]
-                fav = media_file.Favorite(mf, time, fav[0], thumb_id)
+                thumb = db_utils.get_thumbnail_from_id(self.db_conn, thumb_id)
+                fav = media_file.Favorite(mf, thumb[2], fav[0], thumb_id)
+                fav.jpg = thumb[3]
                 mf.favorites.append(fav)
 
     def add_actor(self, name):

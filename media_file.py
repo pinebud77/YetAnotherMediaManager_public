@@ -58,6 +58,8 @@ class Favorite:
         self.id = id
         self.thumb_id = thumb_id
         self.imagelist_index =None
+        self.view_index = None
+        self.jpg = None
 
     def store(self):
         db_conn = self.mediafile.catalog.db_conn
@@ -95,6 +97,7 @@ class MediaFile:
 
         self.abspath = os.path.join(topdir.abspath, reldir, filename)
         self.imagelist_index = None
+        self.view_index = None
 
     def load_dbtuple(self, t):
         self.id = t[0]
@@ -150,7 +153,7 @@ class MediaFile:
                 try:
                     clip.close()
                     del clip
-                except Exception e:
+                except Exception as e:
                     logging.error(e)
                 return
             try:

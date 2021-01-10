@@ -28,6 +28,8 @@ import webbrowser
 import tempfile
 import urllib.request
 import copy
+import threading
+import multiprocessing
 
 import settings
 import icons
@@ -68,6 +70,7 @@ class MediaManager(wx.Frame):
             self.sort_positive = -1
         self.thread_catalog = None
         self.file_to_open = None
+        self.add_icon_lock = threading.Lock()
 
         self.InitUI()
 
@@ -438,44 +441,52 @@ class MediaManager(wx.Frame):
             logging.debug('sorting ascend changed to descend')
 
     def add_mediafile(self, mf):
+        self.add_mediaicon(mf)
         if self.view_contents == VIEW_FILES:
-            index = len(self.files)
+            list_idx = self.filesList.InsertItem(mf.view_index,
+                                                 mf.filename,
+                                                 mf.imagelist_index)
+            self.filesList.SetItemData(list_idx, mf.view_index)
+        else:
+            for fav in mf.favorites:
+                list_idx = self.filesList.InsertItem(fav.view_index,
+                                                     mf.filename,
+                                                     fav.imagelist_index)
+                self.filesList.SetItemData(list_idx, fav.view_index)
+
+    def add_mediaicon(self, mf):
+        if self.view_contents == VIEW_FILES:
             self.files.append(mf)
+            mf.view_index = self.files.index(mf)
             if mf.imagelist_index is None:
-                jpg_bytes = mf.get_coverjpg()
+                jpg_bytes = mf.get_coverjpg(read_db=False)
                 if jpg_bytes:
                     data_stream = io.BytesIO(jpg_bytes)
                     image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
                 else:
-                    image = wx.Image(360, 203)
+                    image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
                 image = self.get_scaled_image(self.image_list, image)
                 bmp = wx.Bitmap(image)
+                self.add_icon_lock.acquire()
                 mf.imagelist_index = self.image_list.Add(bmp)
-
-            list_idx = self.filesList.InsertItem(index,
-                                                 mf.filename,
-                                                 mf.imagelist_index)
-            self.filesList.SetItemData(list_idx, index)
+                self.add_icon_lock.release()
         else:
             for fav in mf.favorites:
-                index = len(self.files)
+                self.add_icon_lock.acquire()
                 self.files.append(mf)
                 self.favorites.append(fav)
+                fav.view_index = self.favorites.index(fav)
+                self.add_icon_lock.release()
                 if fav.imagelist_index is None:
-                    jpg_bytes = mf.get_thumbjpg(fav.thumb_id)
+                    jpg_bytes = fav.jpg
                     if jpg_bytes:
                         data_stream = io.BytesIO(jpg_bytes)
                         image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
                     else:
-                        image = wx.Image(360, 203)
+                        image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
                     image = self.get_scaled_image(self.image_list, image)
                     bmp = wx.Bitmap(image)
                     fav.imagelist_index = self.image_list.Add(bmp)
-
-                list_idx = self.filesList.InsertItem(index,
-                                                     mf.filename,
-                                                     fav.imagelist_index)
-                self.filesList.SetItemData(list_idx, index)
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
@@ -513,18 +524,47 @@ class MediaManager(wx.Frame):
                                     tags=self.leftPanel.tag_selected,
                                     filename=self.leftPanel.file_filter)
 
+        cpu_count = multiprocessing.cpu_count()
         self.filesList.Freeze()
         self.disable()
         count = 0
         total = len(files)
+        thread_list = []
+        file_list = []
         for mf in files:
             count += 1
+            t = threading.Thread(target=self.add_mediaicon, args=(mf,))
+            thread_list.append(t)
+            file_list.append(mf)
+            t.start()
+
             if count % update_period == 0:
                 self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
                 self.filesList.Thaw()
                 wx.Yield()
                 self.filesList.Freeze()
-            self.add_mediafile(mf)
+
+            if count % cpu_count and count < total:
+                continue
+
+            for t in thread_list:
+                t.join()
+            thread_list = []
+
+            for file in file_list:
+                if self.view_contents == VIEW_FILES:
+                    list_idx = self.filesList.InsertItem(file.view_index,
+                                                         file.filename,
+                                                         file.imagelist_index)
+                    self.filesList.SetItemData(list_idx, file.view_index)
+                else:
+                    for fav in file.favorites:
+                        list_idx = self.filesList.InsertItem(fav.view_index,
+                                                             file.filename,
+                                                             fav.imagelist_index)
+                        self.filesList.SetItemData(list_idx, fav.view_index)
+            file_list = []
+
         self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
@@ -821,6 +861,7 @@ class MediaManager(wx.Frame):
             return
         thumb = mf.thumbnails[self.thumb_sel]
         fav = mf.add_favorite(thumb[0])
+        fav.jpg = thumb[1]
         if self.fileRadio.GetValue():
             self.select_file(mf, update_thumbs=False)
         else:
