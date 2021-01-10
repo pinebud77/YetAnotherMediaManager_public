@@ -52,7 +52,7 @@ class DbVersionException(Exception):
 
 
 class Catalog(list):
-    def __init__(self, db_abspath, extension_list=DEF_FILE_EXTENTION):
+    def __init__(self, db_abspath, extension_list=DEF_FILE_EXTENSION):
         super(Catalog, self).__init__()
 
         self.filepath = db_abspath

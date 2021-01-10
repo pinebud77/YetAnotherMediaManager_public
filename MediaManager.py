@@ -441,7 +441,17 @@ class MediaManager(wx.Frame):
             logging.debug('sorting ascend changed to descend')
 
     def add_mediafile(self, mf):
+        if self.view_contents == VIEW_FILES:
+            self.files.append(mf)
+            mf.view_index = self.files.index(mf)
+        elif self.view_contents == VIEW_FAVORITES:
+            for fav in mf.favorites:
+                self.files.append(mf)
+                self.favorites.append(fav)
+                fav.view_index = self.favorites.index(fav)
+
         self.add_mediaicon(mf)
+
         if self.view_contents == VIEW_FILES:
             list_idx = self.filesList.InsertItem(mf.view_index,
                                                  mf.filename,
@@ -456,8 +466,6 @@ class MediaManager(wx.Frame):
 
     def add_mediaicon(self, mf):
         if self.view_contents == VIEW_FILES:
-            self.files.append(mf)
-            mf.view_index = self.files.index(mf)
             if mf.imagelist_index is None:
                 jpg_bytes = mf.get_coverjpg(read_db=False)
                 if jpg_bytes:
@@ -472,11 +480,6 @@ class MediaManager(wx.Frame):
                 self.add_icon_lock.release()
         else:
             for fav in mf.favorites:
-                self.add_icon_lock.acquire()
-                self.files.append(mf)
-                self.favorites.append(fav)
-                fav.view_index = self.favorites.index(fav)
-                self.add_icon_lock.release()
                 if fav.imagelist_index is None:
                     jpg_bytes = fav.jpg
                     if jpg_bytes:
@@ -486,7 +489,9 @@ class MediaManager(wx.Frame):
                         image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
                     image = self.get_scaled_image(self.image_list, image)
                     bmp = wx.Bitmap(image)
+                    self.add_icon_lock.acquire()
                     fav.imagelist_index = self.image_list.Add(bmp)
+                    self.add_icon_lock.release()
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
@@ -515,7 +520,6 @@ class MediaManager(wx.Frame):
         self.file_last_selected = None
         self.favorite_last_selected = None
         self.rightPanel.set_mediafiles([])
-
         self.filesList.DeleteAllItems()
 
         if not self.catalog:
@@ -533,13 +537,30 @@ class MediaManager(wx.Frame):
         file_list = []
         for mf in files:
             count += 1
-            t = threading.Thread(target=self.add_mediaicon, args=(mf,))
-            thread_list.append(t)
+
+            thumb_required = False
+            if self.view_contents == VIEW_FILES:
+                self.files.append(mf)
+                mf.view_index = self.files.index(mf)
+                if mf.imagelist_index is None:
+                    thumb_required = True
+            elif self.view_contents == VIEW_FAVORITES:
+                for fav in mf.favorites:
+                    self.files.append(mf)
+                    self.favorites.append(fav)
+                    fav.view_index = self.favorites.index(fav)
+                    if fav.imagelist_index is None:
+                        thumb_required = True
+
+            if thumb_required:
+                t = threading.Thread(target=self.add_mediaicon, args=(mf,))
+                thread_list.append(t)
+                t.start()
             file_list.append(mf)
-            t.start()
 
             if count % update_period == 0:
-                self.statusbar.SetStatusText('loading files (%d/%d)' % (count, total))
+                wx.CallAfter(self.statusbar.SetStatusText,
+                             'loading files (%d/%d)' % (count, total))
                 self.filesList.Thaw()
                 wx.Yield()
                 self.filesList.Freeze()
@@ -565,7 +586,8 @@ class MediaManager(wx.Frame):
                         self.filesList.SetItemData(list_idx, fav.view_index)
             file_list = []
 
-        self.statusbar.SetStatusText('files loaded (%d/%d)' % (count, total))
+        wx.CallAfter(self.statusbar.SetStatusText,
+                     'files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
         self.enable()
@@ -576,7 +598,7 @@ class MediaManager(wx.Frame):
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')
         if self.thread_message:
-            self.statusbar.SetStatusText(self.thread_message)
+            wx.CallAfter(self.statusbar.SetStatusText, self.thread_message)
             self.thread_message = None
 
         if self.db_updated:
