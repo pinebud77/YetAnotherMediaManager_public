@@ -27,6 +27,7 @@ import requests
 import webbrowser
 import tempfile
 import urllib.request
+import copy
 
 import settings
 import icons
@@ -54,8 +55,11 @@ class MediaManager(wx.Frame):
         self.db_updated = False
         self.thumb_sel = None
         self.files = []
+        self.favorites = []
         self.files_selected = []
+        self.favorites_selected = []
         self.file_last_selected = None
+        self.favorite_last_selected = None
         self.sort_method = settings.DEF_SORT_METHOD
         self.sort_ascend = settings.DEF_SORT_ASCEND
         if self.sort_ascend:
@@ -210,6 +214,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileDeselect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
         #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
+        filesList.Bind(wx.EVT_KEY_DOWN, self.OnFilesKeyDown)
         filesList.SetDoubleBuffered(True)
         self.filesList = filesList
 
@@ -239,6 +244,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnOpenTimer, self.open_timer)
         self.thumb_timer = wx.Timer(self, 2)
         self.Bind(wx.EVT_TIMER, self.OnThumbTimer, self.thumb_timer)
+
 
         self.thumbRightMenu = wx.Menu()
         menuActor = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Actor Image')
@@ -295,6 +301,76 @@ class MediaManager(wx.Frame):
         image.Rescale(24, 24)
         return wx.Bitmap(image)
 
+    def delete_files(self):
+        self.filesList.Freeze()
+        selected = copy.copy(self.files_selected)
+        for list_idx in range(self.filesList.GetItemCount()):
+            self.filesList.Select(list_idx, on=0)
+
+        for mf in selected:
+            try:
+                self.catalog.del_file(mf)
+            except Exception as e:
+                logging.error(e)
+                continue
+            index = self.files.index(mf)
+            target_idx = None
+            for list_idx in range(self.filesList.GetItemCount()):
+                data = self.filesList.GetItemData(list_idx)
+                if data == index:
+                    target_idx = list_idx
+                    break
+            for list_idx in range(self.filesList.GetItemCount()):
+                data = self.filesList.GetItemData(list_idx)
+                if data <= index:
+                    continue
+                self.filesList.SetItemData(list_idx, data - 1)
+            if target_idx is not None:
+                self.filesList.DeleteItem(target_idx)
+            del(self.files[index])
+
+        self.files_selected = []
+        self.favorites_selected = []
+        self.filesList.Thaw()
+
+    def delete_favorites(self):
+        self.filesList.Freeze()
+        selected = copy.copy(self.favorites_selected)
+        for list_idx in range(self.filesList.GetItemCount()):
+            self.filesList.Select(list_idx, on=0)
+
+        for fav in selected:
+            fav.mediafile.del_favorite(fav)
+            index = self.favorites.index(fav)
+            target_idx = None
+            for list_idx in range(self.filesList.GetItemCount()):
+                data = self.filesList.GetItemData(list_idx)
+                if data == index:
+                    target_idx = list_idx
+                    break
+            for list_idx in range(self.filesList.GetItemCount()):
+                data = self.filesList.GetItemData(list_idx)
+                if data <= index:
+                    continue
+                self.filesList.SetItemData(list_idx, data - 1)
+            if target_idx is not None:
+                self.filesList.DeleteItem(target_idx)
+            del(self.files[index])
+            del(self.favorites[index])
+
+        self.files_selected = []
+        self.favorites_selected = []
+        self.filesList.Select(-1)
+        self.filesList.Thaw()
+
+    def OnFilesKeyDown(self, e):
+        if e.GetKeyCode() != wx.WXK_DELETE:
+            return
+        if self.fileRadio.GetValue():
+            self.delete_files()
+        else:
+            self.delete_favorites()
+
     def OnContentsRadio(self, e):
         if self.fileRadio.GetValue():
             self.view_contents = VIEW_FILES
@@ -340,10 +416,9 @@ class MediaManager(wx.Frame):
         self.OnSortChange(None)
 
     def add_mediafile(self, mf):
-        index = len(self.files)
-        self.files.append(mf)
-
         if self.view_contents == VIEW_FILES:
+            index = len(self.files)
+            self.files.append(mf)
             if mf.imagelist_index is None:
                 jpg_bytes = mf.get_coverjpg()
                 if jpg_bytes:
@@ -361,6 +436,9 @@ class MediaManager(wx.Frame):
             self.filesList.SetItemData(list_idx, index)
         else:
             for fav in mf.favorites:
+                index = len(self.files)
+                self.files.append(mf)
+                self.favorites.append(fav)
                 if fav.imagelist_index is None:
                     jpg_bytes = mf.get_thumbjpg(fav.thumb_id)
                     if jpg_bytes:
@@ -390,7 +468,6 @@ class MediaManager(wx.Frame):
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
             for mf in self.catalog:
                 mf.imagelist_index = None
-            self.files = []
             update_period = 50
 
         if update_period is None:
@@ -398,9 +475,13 @@ class MediaManager(wx.Frame):
 
         logging.debug('view loading started')
 
+        self.files = []
+        self.favorites = []
         self.files_selected = []
+        self.favorites_selected = []
         self.file_last_selected = None
-        self.rightPanel.set_mediafiles(self.files_selected)
+        self.favorite_last_selected = None
+        self.rightPanel.set_mediafiles([])
 
         self.filesList.DeleteAllItems()
 
@@ -505,6 +586,21 @@ class MediaManager(wx.Frame):
         self.thumbs_list.RemoveAll()
         self.file_last_selected = None
 
+    def deselect_favorite(self, fav):
+        if not (fav in self.favorites_selected):
+            return
+
+        index = self.favorites_selected.index(fav)
+        del(self.files_selected[index])
+        del(self.favorites_selected[index])
+        self.rightPanel.set_mediafiles(self.files_selected)
+
+        if fav != self.favorite_last_selected:
+            return
+        self.thumbsList.DeleteAllItems()
+        self.thumbs_list.RemoveAll()
+        self.file_last_selected = None
+
     def OnThumbTimer(self, e):
         if not self.file_last_selected:
             return
@@ -530,7 +626,7 @@ class MediaManager(wx.Frame):
 
             index += 1
 
-    def select_file(self, mf, update_thumbs=False):
+    def select_file(self, mf, update_thumbs=True):
         if mf in self.files_selected:
             return
 
@@ -538,9 +634,25 @@ class MediaManager(wx.Frame):
 
         self.files_selected.append(mf)
         self.rightPanel.set_mediafiles(self.files_selected)
+        self.file_last_selected = mf
+
+        if update_thumbs:
+            self.thumbsList.DeleteAllItems()
+            self.thumbs_list.RemoveAll()
+            self.thumb_timer.Stop()
+            self.thumb_timer.Start(5, oneShot=True)
+
+    def select_favorite(self, fav, update_thumbs=False):
+        if fav in self.favorites_selected:
+            return
+
+        self.files_selected.append(fav.mediafile)
+        self.favorites_selected.append(fav)
+        self.rightPanel.set_mediafiles(self.files_selected)
         self.thumbsList.DeleteAllItems()
         self.thumbs_list.RemoveAll()
-        self.file_last_selected = mf
+        self.file_last_selected = fav.mediafile
+        self.favorite_last_selected = fav
         self.thumb_timer.Stop()
         if not update_thumbs:
             self.thumb_timer.Start(5, oneShot=True)
@@ -665,9 +777,12 @@ class MediaManager(wx.Frame):
         if not mf.thumbnails:
             return
         thumb = mf.thumbnails[self.thumb_sel]
-        mf.add_favorite(thumb[0])
-        self.update_view()
-        self.select_file(mf, update_thumbs=True)
+        fav = mf.add_favorite(thumb[0])
+        if self.fileRadio.GetValue():
+            self.select_file(mf, update_thumbs=False)
+        else:
+            self.update_view()
+            self.select_favorite(fav, update_thumbs=False)
 
     def OnThumbSave(self, e):
         if not self.file_last_selected:
@@ -690,7 +805,7 @@ class MediaManager(wx.Frame):
         self.thumb_sel = self.thumbsList.GetFirstSelected()
 
     def OnThumbDClick(self, e):
-        logging.info('openning videoclip : %s' % self.file_last_selected)
+        logging.debug('openning videoclip : %s' % self.file_last_selected)
         thumb = self.file_last_selected.thumbnails[self.thumb_sel]
         run_list = (DEF_OPEN_EXE,
                     DEF_OPEN_FILE % self.file_last_selected.abspath,
@@ -700,10 +815,17 @@ class MediaManager(wx.Frame):
         self.rightPanel.set_mediafiles(self.files_selected)
 
     def OnFileDClick(self, e):
-        logging.info('openning videoclip : %s' % self.file_last_selected)
-        run_list = (DEF_OPEN_EXE,
-                    DEF_OPEN_FILE % self.file_last_selected.abspath)
-        subprocess.Popen(run_list)
+        if self.fileRadio.GetValue():
+            logging.debug('openning videoclip : %s' % self.file_last_selected)
+            run_list = (DEF_OPEN_EXE,
+                        DEF_OPEN_FILE % self.file_last_selected.abspath)
+            subprocess.Popen(run_list)
+        else:
+            logging.debug('openning videoclip : %s' % self.file_last_selected)
+            run_list = (DEF_OPEN_EXE,
+                        DEF_OPEN_FILE % self.file_last_selected.abspath,
+                        DEF_OPEN_SEEK % self.favorite_last_selected.time)
+            subprocess.Popen(run_list)
         self.file_last_selected.set_lastplayed(datetime.datetime.now())
         self.rightPanel.set_mediafiles(self.files_selected)
 
@@ -713,15 +835,25 @@ class MediaManager(wx.Frame):
 
     def OnFileSelect(self, e):
         sel = self.filesList.GetItemData(e.GetIndex())
-        mf = self.files[sel]
-        logging.debug('file selected from view : %s' % mf)
-        self.select_file(mf)
+        if self.fileRadio.GetValue():
+            mf = self.files[sel]
+            logging.debug('file selected from view : %s' % mf)
+            self.select_file(mf)
+        else:
+            fav = self.favorites[sel]
+            logging.debug('favorite selected from view : %s' % fav)
+            self.select_favorite(fav)
 
     def OnFileDeselect(self, e):
         sel = self.filesList.GetItemData(e.GetIndex())
-        mf = self.files[sel]
-        logging.debug('file selected from view : %s' % mf)
-        self.deselect_file(mf)
+        if self.fileRadio.GetValue():
+            mf = self.files[sel]
+            logging.debug('file deselected from view : %s' % mf)
+            self.deselect_file(mf)
+        else:
+            fav = self.favorites[sel]
+            logging.debug('favorite deselected from view : %s' % fav)
+            self.deselect_favorite(fav)
 
     def OnNewCatalog(self, e):
         self.stop_sync()

@@ -391,6 +391,15 @@ class Catalog(list):
         if msg_cb is not None:
             msg_cb('Sync Finished')
 
+    def del_file(self, mf):
+        if mf not in self:
+            return
+
+        os.remove(mf.abspath)
+        self.remove(mf)
+        db_utils.del_file_nocommit(self.db_conn, mf)
+        self.db_conn.commit()
+
     def reload_files(self):
         min_fileid = 0
         for mf in self:

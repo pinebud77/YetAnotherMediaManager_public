@@ -529,7 +529,7 @@ def get_favorite_list(conn):
     return rows
 
 
-sql_delete_favorite = """DELETE FROM favorites
+sql_delete_favorite = """DELETE FROM favorite
                          WHERE id=?;"""
 
 def del_favorite(conn, fav_id):

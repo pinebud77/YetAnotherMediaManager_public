@@ -65,6 +65,9 @@ class Favorite:
         db_conn = self.mediafile.catalog.db_conn
         db_utils.del_favorite(db_conn, self.id)
 
+    def __str__(self):
+        return 'favorite file:%s time:%d' % (self.mediafile, self.time)
+
 
 class MediaFile:
     def __init__(self, catalog, topdir, reldir, filename):
@@ -148,6 +151,7 @@ class MediaFile:
         self.thumbnails = thumbnails
 
         try:
+            clip.close()
             del(clip)
         except Exception as e:
             logging.error(e)
@@ -202,6 +206,7 @@ class MediaFile:
         try:
             clip = VideoFileClip(self.abspath, audio=False)
             self.duration = clip.duration
+            clip.close()
             del(clip)
         except Exception as e:
             logging.error(e)
@@ -243,6 +248,7 @@ class MediaFile:
             self.load_thumbnails()
             clean_thumbnails = True
 
+        fav = None
         for thumb in self.thumbnails:
             if thumb[0] != time:
                 continue
@@ -256,6 +262,15 @@ class MediaFile:
 
         if clean_thumbnails:
             self.thumbnails = None
+
+        return fav
+
+    def del_favorite(self, fav):
+        if fav not in self.favorites:
+            return
+
+        self.favorites.remove(fav)
+        db_utils.del_favorite(self.catalog.db_conn, fav.id)
 
     def __str__(self):
         return self.abspath
