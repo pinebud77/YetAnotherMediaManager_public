@@ -8,3 +8,4 @@ icons
 *.pyo
 *.log
 libs
+.idea
