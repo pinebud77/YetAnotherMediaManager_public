@@ -455,8 +455,8 @@ class MediaManager(wx.Frame):
                                                      fav.imagelist_index)
                 self.filesList.SetItemData(list_idx, index)
 
-    def OnViewChange(self, vtype=None, update_period=None, force=False):
-        if force or (self.view_type != vtype and vtype is not None):
+    def OnViewChange(self, vtype=None, update_period=None):
+        if self.view_type != vtype and vtype is not None:
             if vtype is not None:
                 self.view_type = vtype
             if self.view_type == SMALL_THUMBNAILS:
@@ -735,8 +735,8 @@ class MediaManager(wx.Frame):
         else:
             return self.sort_positive
 
-    def update_view(self, force=False, update_period=None):
-        self.OnViewChange(vtype=None, update_period=update_period, force=force)
+    def update_view(self, update_period=None):
+        self.OnViewChange(vtype=None, update_period=update_period)
 
     def OnViewSmall(self, e):
         self.OnViewChange(SMALL_THUMBNAILS)
