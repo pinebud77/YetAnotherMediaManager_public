@@ -381,15 +381,16 @@ class Catalog(list):
         thread_list = []
         while add_db_list:
             mf = add_db_list[0]
+            del add_db_list[0]
             if self.kill_thread:
                 return
             count += 1
-            t = threading.Thread(target=self.sync_thread_func, args=(mf, count, total, msg_cb))
+            t = threading.Thread(target=self.sync_thread_func, args=(mf,))
             t.start()
             thread_list.append(t)
-            del add_db_list[0]
-            if count % cpu_count:
+            if count % cpu_count and count < total:
                 continue
+            msg_cb('Adding files : %s (%d/%d)' % (mf.filename, count, total))
 
             for t in thread_list:
                 t.join()
@@ -406,14 +407,13 @@ class Catalog(list):
                     db_utils.del_cover(self.db_conn, mf.id)
                     db_utils.add_cover(self.db_conn, mf.id, cover_jpg)
                 self.append(mf)
+            self.thread_files = []
 
         if msg_cb is not None:
             msg_cb('Sync Finished')
 
-    def sync_thread_func(self, mf, count, total, msg_cb):
+    def sync_thread_func(self, mf):
         mf.loadinfo()
-        if msg_cb is not None:
-            msg_cb('Adding: %s (%d/%d)' % (mf.filename, count, total))
         if self.kill_thread:
             return
         mf.create_thumbnails()
