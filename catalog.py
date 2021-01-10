@@ -32,8 +32,10 @@ import database_utils as db_utils
 DB_MAJOR_VERSION = 0
 DB_MINOR_VERSION = 2
 
+
 def get_abspath(topdir):
     return topdir.abspath
+
 
 def get_2nd_element(list_element):
     return list_element[1]

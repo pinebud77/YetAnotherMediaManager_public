@@ -392,9 +392,9 @@ class MediaManager(wx.Frame):
         logging.debug('opening Github homepage : %s' % GITHUB_URL)
         try:
             webbrowser.open(GITHUB_URL)
-        except Exception as e:
+        except Exception as exc:
             logging.error('calling webrowser failed')
-            logging.error(e)
+            logging.error(exc)
 
     def OnHelpAbout(self, e):
         wx.MessageBox('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR),
@@ -919,7 +919,7 @@ class MediaManager(wx.Frame):
             abspath = os.path.abspath(catDialog.catPath.GetLabelText())
             try:
                 os.remove(abspath)
-            except Exception as e:
+            except Exception as exc:
                 pass
             self.catalog = Catalog(db_abspath=abspath)
             self.catalog.open_database()
