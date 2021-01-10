@@ -216,7 +216,6 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFileSelect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFileDeselect, filesList)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnFileDClick, filesList)
-        #self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnFileRight, filesList)
         filesList.Bind(wx.EVT_KEY_DOWN, self.OnFilesKeyDown)
         filesList.SetDoubleBuffered(True)
         self.filesList = filesList

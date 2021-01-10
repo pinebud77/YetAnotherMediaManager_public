@@ -114,6 +114,7 @@ def get_topdir_id(conn, abspath):
         return None
     return rows[0][0]
 
+
 sql_insert_topdir = """INSERT INTO topdir (path, comment, exclude)
                        VALUES(?, ?, ?);
                     """
@@ -421,7 +422,7 @@ def add_actor(conn, name, picture=None, bio=None, comment=None):
     conn.commit()
 
 
-sql_modify_actor = """UPDATE
+sql_modify_actor = """UPDATE tag
                       SET name=?, picture=?, bio=?, comment=?
                       WHERE name=?;"""
 
@@ -558,6 +559,17 @@ def get_tag_list(conn):
     c = conn.cursor()
     c.execute(sql_get_tag)
     return c.fetchall()
+
+
+sql_modify_tag = """UPDATE tag
+                    SET tag=?
+                    WHERE tag=? AND file_id=?"""
+
+
+def modify_tag(conn, file_id, orig_tag, new_tag):
+    c = conn.cursor()
+    c.execute(sql_modify_tag, (new_tag, orig_tag, file_id,))
+    conn.commit()
 
 
 sql_create_favorite_table = """CREATE TABLE IF NOT EXISTS favorite(

@@ -232,6 +232,13 @@ class MediaFile:
         db_utils.del_actorfile(self.catalog.db_conn, name, self.id)
         self.actor_list.remove(name)
 
+    def modify_actor(self, orig_name, new_name):
+        if not (orig_name in self.actor_list):
+            return
+        self.actor_list.remove(orig_name)
+        self.actor_list.append(new_name)
+        self.actor_list.sort()
+
     def add_tag(self, tag):
         if tag in self.tag_list:
             return
@@ -244,6 +251,14 @@ class MediaFile:
             return
         db_utils.del_tag(self.catalog.db_conn, tag, self.id)
         self.tag_list.remove(tag)
+
+    def modify_tag(self, orig_tag, new_tag):
+        if not (orig_tag in self.tag_list):
+            return
+        db_utils.modify_tag(self.catalog.db_conn, self.id, orig_tag, new_tag)
+        self.tag_list.remove(orig_tag)
+        self.tag_list.append(new_tag)
+        self.tag_list.sort()
 
     def add_favorite(self, time):
         for fav in self.favorites:

@@ -356,14 +356,14 @@ class RightPanel(wx.Panel):
 
     def OnTagUncheck(self, e):
         sel = e.GetIndex()
-        name = self.tagList.GetItemText(sel, 1)
+        tag = self.tagList.GetItemText(sel, 1)
 
         for mf in self.files_selected:
             if not (tag in mf.tag_list):
                 return
 
         for mf in self.files_selected:
-            mf.add_tag(tag)
+            mf.del_tag(tag)
 
     def OnTagAdd(self, e):
         tag = self.tagText.GetValue()

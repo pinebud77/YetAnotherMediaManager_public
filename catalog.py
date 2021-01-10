@@ -108,7 +108,7 @@ class Catalog(list):
         db_actorfile_list = db_utils.get_actorfile_list(self.db_conn)
         for db_actorfile in db_actorfile_list:
             mf = self.get_file_from_id(db_actorfile[1])
-            actor_name = db_utils.get_actor_from_id(db_actorfile[0])
+            actor_name = db_utils.get_actor_from_id(self.db_conn, db_actorfile[0])
             mf.actor_list.append(actor_name)
 
         # create or load tag table
@@ -453,7 +453,7 @@ class Catalog(list):
         if new_name in self.actor_list:
             return
 
-        db_utils.modify_actor(self.db_conn, orig_name, new_name, None)
+        db_utils.modify_actor(self.db_conn, orig_name, new_name)
         for mf in self:
             mf.modify_actor(orig_name, new_name)
         self.actor_list.remove(orig_name)
