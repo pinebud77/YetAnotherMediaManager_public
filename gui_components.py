@@ -61,14 +61,20 @@ class LeftPanel(wx.Panel):
         hbox.Add(fileSetBtn)
         vbox.Add(hbox, 0, wx.EXPAND)
 
-        self.actorList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST|wx.LC_ALIGN_TOP)
+        self.actorList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST |
+                                                                 wx.LC_ALIGN_TOP |
+                                                                 wx.LC_EDIT_LABELS)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnActorSelect, self.actorList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnActorSelect, self.actorList)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnActorEdit, self.actorList)
         vbox.Add(self.actorList, 1, wx.EXPAND)
 
-        self.tagList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST|wx.LC_ALIGN_TOP)
+        self.tagList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST |
+                                                               wx.LC_ALIGN_TOP |
+                                                               wx.LC_EDIT_LABELS)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnTagSelect, self.tagList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnTagSelect, self.tagList)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnTagEdit, self.tagList)
         vbox.Add(self.tagList, 1, wx.EXPAND)
 
         self.update_timer = wx.Timer(self, 0)
@@ -81,6 +87,18 @@ class LeftPanel(wx.Panel):
 
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
+
+    def OnActorEdit(self, e):
+        self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
+                                            e.GetLabel())
+        self.update_lists()
+        self.mm_window.rightPanel.set_mediafiles((self.mm_windows.rightPanel.files_selected))
+
+    def OnTagEdit(self, e):
+        self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
+                                          e.GetLabel())
+        self.update_lists()
+        self.mm_window.rightPanel.set_mediafiles((self.mm_windows.rightPanel.files_selected))
 
     def OnFileFilter(self, e):
         self.file_filter = self.fileText.GetValue()
@@ -400,9 +418,9 @@ class RightPanel(wx.Panel):
         self.propertyList.SetItem(0, 1, media_file.filename)
         self.propertyList.InsertItem(1, 'Path')
         self.propertyList.SetItem(1, 1, media_file.abspath)
-        self.propertyList.InsertItem(2, 'Stars')
-        if media_file.stars:
-            self.propertyList.SetItem(2, 1, '%d' % media_file.stars)
+        self.propertyList.InsertItem(2, 'Resolution')
+        if media_file.width and media_file.height:
+            self.propertyList.SetItem(2, 1, '%d x %d' % (media_file.width, media_file.height))
         else:
             self.propertyList.SetItem(2, 1, '')
 

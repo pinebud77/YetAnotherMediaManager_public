@@ -177,7 +177,7 @@ class MediaManager(wx.Frame):
         self.Bind(wx.EVT_RADIOBUTTON, self.OnContentsRadio, self.fileRadio)
         ihbox.AddStretchSpacer()
         ihbox.Add(wx.StaticText(self, label='sort by :'), 0, wx.EXPAND)
-        sort_choices = ('Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size',)
+        sort_choices = ('Filename', 'Created Time', 'Last Played Time', 'Duration', 'Path', 'Size', 'Resolution')
         self.sortChoice = wx.Choice(self, choices=sort_choices)
         self.sortChoice.SetSelection(self.sort_method)
         self.Bind(wx.EVT_CHOICE, self.OnSortChange, self.sortChoice)
@@ -416,6 +416,8 @@ class MediaManager(wx.Frame):
             self.filesList.SortItems(self.sort_path)
         elif self.sort_method == FILTER_SORT_SIZE:
             self.filesList.SortItems(self.sort_size)
+        elif self.sort_method == FILTER_SORT_RESOLUTION:
+            self.filesList.SortItems(self.sort_resolution)
         else:
             logging.error('not a defined sorting method')
             self.sort_method = FILTER_SORT_PATH
@@ -751,6 +753,34 @@ class MediaManager(wx.Frame):
         else:
             return self.sort_positive
 
+    def sort_resolution(self, item1, item2):
+        mf1 = self.files[item1]
+        mf2 = self.files[item2]
+        if not (mf1.width and mf1.height):
+            mf1_size = None
+        if not (mf2.width and mf2.height):
+            mf1_size = None
+        if mf1.width > mf1.height:
+            mf1_size = mf1.width
+        else:
+            mf1_size = mf1_height
+        if mf2.width > mf2.height:
+            mf2_size = mf2.width
+        else:
+            mf2_size = mf2_height
+        if (not mf1_size) and mf2_size:
+            return -self.sort_positive
+        if mf1_size and (not mf2_size):
+            return self.sort_positive
+        if not mf1_size and not mf2_size:
+            return 0
+        if mf1_size == mf2_size:
+            return 0
+        elif mf1_size < mf2_size:
+            return -self.sort_positive
+        else:
+            return self.sort_positive
+
     def update_view(self, update_period=None):
         self.OnViewChange(vtype=None, update_period=update_period)
 
@@ -931,7 +961,14 @@ class MediaManager(wx.Frame):
         yamm_file = os.path.abspath(yamm_file)
         self.catalog = Catalog(db_abspath=yamm_file)
         self.statusbar.SetStatusText('Openning catalog file (This will take time to load files)')
-        self.catalog.open_database()
+        try:
+            self.catalog.open_database()
+        except DbVersionException as e:
+            wx.MessageBox('Sorry. Catalog Version was updated. You need to create new .yamm file.',
+                          'Version Mismatch',
+                          wx.OK)
+            return
+
         self.update_view(update_period=50)
         self.leftPanel.set_mm_window(self)
         self.statusbar.SetStatusText('Start Scanning files...')

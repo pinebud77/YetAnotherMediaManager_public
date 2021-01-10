@@ -29,8 +29,8 @@ import media_file
 import database_utils as db_utils
 
 
-MAJOR_VERSION = 0
-MINOR_VERSION = 1
+DB_MAJOR_VERSION = 0
+DB_MINOR_VERSION = 2
 
 def get_abspath(topdir):
     return topdir.abspath
@@ -41,6 +41,10 @@ def get_2nd_element(list_element):
 
 def get_rel_path(media_file):
     return os.path.join(media_file.reldir, media_file.filename)
+
+
+class DbVersionException(Exception):
+    pass
 
 
 class Catalog(list):
@@ -63,12 +67,11 @@ class Catalog(list):
             return None
 
         # get DB version
-        # TODO: add migration code based on DB and APP version diff
         ver_tuple = db_utils.get_app_version(self.db_conn)
         if ver_tuple:
             logging.info('database version = %d.%d' % (ver_tuple[0], ver_tuple[1]))
-        elif not ver_tuple or ver_tuple[0] != MAJOR_VERSION or ver_tuple[1] != MINOR_VERSION:
-            db_utils.set_app_version(self.db_conn, MAJOR_VERSION, MINOR_VERSION)
+            if ver_tuple[0] != DB_MAJOR_VERSION or ver_tuple[1] != DB_MINOR_VERSION:
+                raise DbVersionException('Catalog version updated')
 
         # enable foreign key support
         db_utils.enable_foreign_key(self.db_conn)
@@ -105,7 +108,8 @@ class Catalog(list):
         db_actorfile_list = db_utils.get_actorfile_list(self.db_conn)
         for db_actorfile in db_actorfile_list:
             mf = self.get_file_from_id(db_actorfile[1])
-            mf.actor_list.append(db_actorfile[0])
+            actor_name = db_utils.get_actor_from_id(db_actorfile[0])
+            mf.actor_list.append(actor_name)
 
         # create or load tag table
         db_utils.create_tag_table(self.db_conn)
@@ -141,10 +145,10 @@ class Catalog(list):
                 fav = media_file.Favorite(mf, time, fav[0], thumb_id)
                 mf.favorites.append(fav)
 
-    def add_actor(self, name, picture=None):
+    def add_actor(self, name):
         if name in self.actor_list:
             return
-        db_utils.add_actor(self.db_conn, name, picture)
+        db_utils.add_actor(self.db_conn, name)
         self.actor_list.append(name)
 
     def add_tag(self, tag):
@@ -212,7 +216,7 @@ class Catalog(list):
                 return topdir
         return None
 
-    def add_topdir(self, abspath, comment=None):
+    def add_topdir(self, abspath, comment=None, exclude=False):
         topdir = self.get_topdir_from_abspath(abspath)
         if topdir:
             return
@@ -230,7 +234,7 @@ class Catalog(list):
                 td_i -= 1
             td_i += 1
 
-        topdir = media_file.TopDirectory(self, abspath, comment)
+        topdir = media_file.TopDirectory(self, abspath, comment, exclude)
         if (topdir):
             self.topdir_list.append(topdir)
         self.sync_topdir()
@@ -241,7 +245,6 @@ class Catalog(list):
             return
 
         self.topdir_list.remove(topdir)
-        print(self.topdir_list)
         self.sync_topdir()
 
     def sync_topdir(self):
@@ -444,7 +447,33 @@ class Catalog(list):
         db_utils.update_topdir(self.db_conn, topdir.abspath, newpath)
         topdir.abspath = newpath
 
+    def modify_actor(self, orig_name, new_name):
+        if orig_name not in self.actor_list:
+            return
+        if new_name in self.actor_list:
+            return
+
+        db_utils.modify_actor(self.db_conn, orig_name, new_name, None)
+        for mf in self:
+            mf.modify_actor(orig_name, new_name)
+        self.actor_list.remove(orig_name)
+        self.actor_list.append(new_name)
+        self.actor_list.sort()
+
+    def modify_tag(self, orig_tag, new_tag):
+        if orig_tag not in self.tag_list:
+            return
+        if new_tag in self.tag_list:
+            return
+
+        for mf in self:
+            mf.modify_tag(orig_tag, new_tag)
+        self.tag_list.remove(orig_tag)
+        self.tag_list.append(new_tag)
+        self.tag_list.sort()
+
     def close_database(self):
         if self.db_conn:
             self.db_conn.close()
+
 

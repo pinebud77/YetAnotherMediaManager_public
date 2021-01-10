@@ -31,22 +31,24 @@ def get_time(fav):
 
 
 class TopDirectory:
-    def __init__(self, cat, abspath, comment=None):
+    def __init__(self, cat, abspath, comment=None, exclude=False):
         self.catalog = cat
         self.id = -1
         self.abspath = os.path.abspath(abspath)
         self.comment = comment
+        self.exclude = exclude
 
     def load_dbtuple(self, t):
         self.id = t[0]
         self.abspath = t[1]
-        self.comment = t[2]
+        self.exclude = t[2]
+        self.comment = t[3]
 
     def get_dbtuple(self):
-        return (self.id, self.abspath, self.comment)
+        return self.id, self.abspath, self.exclude, self.comment,
 
     def __str__(self):
-        return 'topdir id:%d abspath:%s' % (self.id, self.abspath)
+        return 'topdir id:%d abspath:%s exclude:%s' % (self.id, self.abspath, self.exclude)
 
 
 class Favorite:
@@ -76,12 +78,13 @@ class MediaFile:
         self.topdir = topdir
         self.reldir = reldir
         self.filename = filename
-        self.stars = None
         self.size = None
         self.time = None
         self.lastplay = None
         self.duration = None
         self.comment = None
+        self.width = None
+        self.height = None
 
         self.catetory = None
         self.tag_list = []
@@ -98,12 +101,13 @@ class MediaFile:
         self.topdir = self.catalog.get_topdir_from_id(t[1])
         self.reldir = t[2]
         self.filename = t[3]
-        self.stars = t[4]
-        self.size = t[5]
-        self.time = t[6]
-        self.lastplay = t[7]
-        self.duration = t[8]
-        self.comment = t[9]
+        self.size = t[4]
+        self.time = t[5]
+        self.lastplay = t[6]
+        self.duration = t[7]
+        self.comment = t[8]
+        self.width = t[9]
+        self.height = t[10]
 
     def set_lastplayed(self, dt):
         self.lastplay = dt
@@ -206,6 +210,8 @@ class MediaFile:
         try:
             clip = VideoFileClip(self.abspath, audio=False)
             self.duration = clip.duration
+            self.width = clip.size[0]
+            self.height = clip.size[1]
             clip.close()
             del(clip)
         except Exception as e:
@@ -216,7 +222,8 @@ class MediaFile:
         if name in self.actor_list:
             return
         self.catalog.add_actor(name)
-        db_utils.add_actorfile(self.catalog.db_conn, name, self.id)
+        actor_id = db_utils.get_actorid_from_name(self.catalog.db_conn, name)
+        db_utils.add_actorfile(self.catalog.db_conn, actor_id, self.id)
         self.actor_list.append(name)
 
     def del_actor(self, name):

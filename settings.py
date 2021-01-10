@@ -41,12 +41,14 @@ FILTER_SORT_LASTPLAY = 2
 FILTER_SORT_DURATION = 3
 FILTER_SORT_PATH = 4
 FILTER_SORT_SIZE = 5
+FILTER_SORT_RESOLUTION = 6
 sort_strings = ('filename',
                 'time',
                 'lastplay',
                 'duration',
                 'path',
-                'size',)
+                'size',
+                'resolution')
 
 #main window settings
 DEF_VIEW_CONTENTS = VIEW_FILES
