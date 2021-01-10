@@ -19,8 +19,6 @@ import os
 import io
 import os.path
 import logging
-import threading
-import multiprocessing
 from PIL import Image
 from moviepy.editor import VideoFileClip
 
@@ -30,10 +28,6 @@ import database_utils as db_utils
 
 def get_time(fav):
     return fav.time
-
-
-def get_first_element(l):
-    return l[0]
 
 
 class TopDirectory:
@@ -127,33 +121,6 @@ class MediaFile:
         twidth = theight * width / height
         return int(twidth), int(theight)
 
-    def thumb_thread_func(self, time, width, height):
-        try:
-            clip = VideoFileClip(self.abspath, audio=False)
-        except Exception as e:
-            logging.error(e)
-            return
-
-        if self.catalog.kill_thread:
-            return
-        try:
-            frame = clip.get_frame(time)
-        except Exception as e:
-            logging.error(e)
-            return
-        p = Image.fromarray(frame)
-        p.thumbnail((width, height,))
-        byte_array = io.BytesIO()
-        p.save(byte_array, format='JPEG')
-        self.thumbnails.append((time, byte_array.getvalue()))
-        try:
-            clip.close()
-            del clip
-        except Exception as e:
-            logging.error(e)
-            return
-
-
     def create_thumbnails(self,
                           period=DEF_STREAM_PERIOD,
                           width=DEF_THUMBNAIL_WIDTH,
@@ -177,32 +144,31 @@ class MediaFile:
         if duration == 0:
             duration = 1
 
+        thumbnails = []
+        for time in range(0, duration, period):
+            if self.catalog.kill_thread:
+                return
+            try:
+                frame = clip.get_frame(time)
+            except Exception as e:
+                logging.error(e)
+                return
+            p = Image.fromarray(frame)
+            p.thumbnail((width, height,))
+
+            byte_arr = io.BytesIO()
+            p.save(byte_arr, format='JPEG')
+
+            thumbnails.append((time, byte_arr.getvalue()))
+
+        self.thumbnails = thumbnails
+
         try:
             clip.close()
-            del clip
+            del(clip)
         except Exception as e:
             logging.error(e)
             return
-
-        self.thumbnails = []
-        cpu_count = multiprocessing.cpu_count()
-        if not cpu_count:
-            cpu_count = 1
-        thread_list = []
-        time = 0
-        while time < duration:
-            t = threading.Thread(target=self.thumb_thread_func, args=(time,  width, height))
-            t.start()
-            thread_list.append(t)
-            if len(thread_list) == cpu_count:
-                for t in thread_list:
-                    t.join()
-                thread_list = []
-            time += period
-        for t in thread_list:
-            t.join()
-        self.thumbnails.sort(key=get_first_element)
-
 
     def save_thumbnails(self):
         if not self.thumbnails:
