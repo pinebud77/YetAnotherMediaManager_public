@@ -451,9 +451,9 @@ class Catalog(list):
 
     def modify_actor(self, orig_name, new_name):
         if orig_name not in self.actor_list:
-            return
+            return False
         if new_name in self.actor_list:
-            return
+            return False
 
         db_utils.modify_actor(self.db_conn, orig_name, new_name)
         for mf in self:
@@ -461,18 +461,20 @@ class Catalog(list):
         self.actor_list.remove(orig_name)
         self.actor_list.append(new_name)
         self.actor_list.sort()
+        return True
 
     def modify_tag(self, orig_tag, new_tag):
         if orig_tag not in self.tag_list:
-            return
+            return False
         if new_tag in self.tag_list:
-            return
+            return False
 
         for mf in self:
             mf.modify_tag(orig_tag, new_tag)
         self.tag_list.remove(orig_tag)
         self.tag_list.append(new_tag)
         self.tag_list.sort()
+        return True
 
     def close_database(self):
         if self.db_conn:

@@ -422,14 +422,14 @@ def add_actor(conn, name, picture=None, bio=None, comment=None):
     conn.commit()
 
 
-sql_modify_actor = """UPDATE tag
+sql_modify_actor = """UPDATE actor
                       SET name=?, picture=?, bio=?, comment=?
                       WHERE name=?;"""
 
 
 def modify_actor(conn, name, new_name, picture=None, bio=None, comment=None):
     c = conn.cursor()
-    c.execute(sql_modify_actor, (name, new_name, picture, bio, comment,))
+    c.execute(sql_modify_actor, (new_name, picture, bio, comment, name,))
     conn.commit()
 
 

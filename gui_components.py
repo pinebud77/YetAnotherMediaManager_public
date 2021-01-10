@@ -89,16 +89,22 @@ class LeftPanel(wx.Panel):
         self.SetAutoLayout(True)
 
     def OnActorEdit(self, e):
-        self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
-                                            e.GetLabel())
+        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
+                                                  e.GetLabel())
+        if not res:
+            e.Veto()
+            return
         self.update_lists()
-        self.mm_window.rightPanel.set_mediafiles((self.mm_windows.rightPanel.files_selected))
+        self.mm_window.rightPanel.set_mediafiles((self.mm_window.rightPanel.files_selected))
 
     def OnTagEdit(self, e):
-        self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
-                                          e.GetLabel())
+        res = self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
+                                                e.GetLabel())
+        if not res:
+            e.Veto()
+            return
         self.update_lists()
-        self.mm_window.rightPanel.set_mediafiles((self.mm_windows.rightPanel.files_selected))
+        self.mm_window.rightPanel.set_mediafiles((self.mm_window.rightPanel.files_selected))
 
     def OnFileFilter(self, e):
         self.file_filter = self.fileText.GetValue()
@@ -260,12 +266,14 @@ class RightPanel(wx.Panel):
         ivbox.Add(ihbox)
         self.actorList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
                                                                  wx.LC_NO_HEADER |
-                                                                 wx.LC_SINGLE_SEL)
+                                                                 wx.LC_SINGLE_SEL |
+                                                                 wx.LC_EDIT_LABELS)
         self.actorList.EnableCheckBoxes()
         self.actorList.InsertColumn(0, 'Icon', width=20)
         self.actorList.InsertColumn(1, 'name', width=120)
         self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnActorCheck, self.actorList)
         self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnActorUncheck, self.actorList)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnActorEdit, self.actorList)
         ivbox.Add(self.actorList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
@@ -284,12 +292,14 @@ class RightPanel(wx.Panel):
         ivbox.Add(ihbox)
         self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
                                                                wx.LC_NO_HEADER |
-                                                               wx.LC_SINGLE_SEL)
+                                                               wx.LC_SINGLE_SEL |
+                                                               wx.LC_EDIT_LABELS)
         self.tagList.EnableCheckBoxes()
         self.tagList.InsertColumn(0, 'Icon', width=20)
         self.tagList.InsertColumn(1, 'name', width=120)
         self.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnTagCheck, self.tagList)
         self.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnTagUncheck, self.tagList)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnTagEdit, self.tagList)
         ivbox.Add(self.tagList, 1, wx.EXPAND)
         hbox.Add(ivbox, 1, wx.EXPAND)
 
@@ -335,6 +345,24 @@ class RightPanel(wx.Panel):
                 mf.add_actor(name)
 
         self.update_actor()
+
+    def OnActorEdit(self, e):
+        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex),
+                                                  e.GetLabel())
+        if not res:
+            e.Veto()
+            return
+        self.update_actor()
+        self.mm_window.leftPanel.set_mm_window(self.mm_window)
+
+    def OnTagEdit(self, e):
+        res = self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
+                                                e.GetLabel())
+        if not res:
+            e.Veto()
+            return
+        self.update_tag()
+        self.mm_window.leftPanel.set_mm_window(self.mm_window)
 
     def update_actor(self):
         self.actor_list.sort()
