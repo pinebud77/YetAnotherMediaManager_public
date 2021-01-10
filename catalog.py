@@ -49,6 +49,8 @@ class DbVersionException(Exception):
 
 class Catalog(list):
     def __init__(self, db_abspath, extension_list=DEF_FILE_EXTENTION):
+        super(Catalog, self).__init__()
+
         self.filepath = db_abspath
         self.topdir_list = []
         self.tag_list = []

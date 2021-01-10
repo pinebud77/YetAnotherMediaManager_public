@@ -113,12 +113,31 @@ class MediaFile:
         self.lastplay = dt
         db_utils.update_file(self.catalog.db_conn, self)
 
+    def get_resolution(self, dwidth, dheight, width, height):
+        theight = width * dheight / dwidth
+        if theight <= dheight:
+            return int(dwidth), int(theight)
+        theight = dheight
+        twidth = theight * width / height
+        return int(twidth), int(theight)
+
     def create_thumbnails(self,
                           period=DEF_STREAM_PERIOD,
                           width=DEF_THUMBNAIL_WIDTH,
                           height=DEF_THUMBNAIL_HEIGHT):
         try:
             clip = VideoFileClip(self.abspath, audio=False)
+            self.width = clip.size[0]
+            self.height = clip.size[1]
+            clip.close()
+            del(clip)
+        except Exception as e:
+            logging.error(e)
+            return
+
+        width, height = self.get_resolution(width, height, self.width, self.height)
+        try:
+            clip = VideoFileClip(self.abspath, target_resolution=(height, width), audio=False)
         except Exception as e:
             logging.error(e)
             return
@@ -145,7 +164,6 @@ class MediaFile:
                 logging.error(e)
                 return
             p = Image.fromarray(frame)
-            p.thumbnail((width, height))
 
             byte_arr = io.BytesIO()
             p.save(byte_arr, format='JPEG')
