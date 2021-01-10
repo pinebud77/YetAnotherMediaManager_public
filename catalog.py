@@ -376,10 +376,6 @@ class Catalog(list):
             self.db_conn.commit()
 
         cpu_count = multiprocessing.cpu_count()
-        cpu_count -= 1
-        if not cpu_count:
-            cpu_count = 1
-
         total = len(add_db_list)
         count = 0
         thread_list = []
