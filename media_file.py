@@ -125,6 +125,7 @@ class MediaFile:
                           period=DEF_STREAM_PERIOD,
                           width=DEF_THUMBNAIL_WIDTH,
                           height=DEF_THUMBNAIL_HEIGHT):
+        logging.debug('creating thumbnail : %s' % self)
         try:
             clip = VideoFileClip(self.abspath, audio=False)
             self.width = clip.size[0]
