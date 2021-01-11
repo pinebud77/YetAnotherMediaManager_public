@@ -16,6 +16,9 @@ Features
 * Save/load configuration file : location - user_home_dir/yamm.settings (JSON format)
 * Saving thumbnail to JPG file
 * Command-line interface for indexing : can run with Linux (tried Rasp-PI)
+* Managing Favorite(bookmark) scenes
+* File deletion
+* File deletion inside app
 
 Command Line Arguments
 * -h (--help) : print usage
@@ -26,22 +29,16 @@ Command Line Arguments
 * -q (--quiet) : print no message
 
 Planned Features
-* Managing Favorite scenes
-* File deletion
 * Creating GIFs from thumbnails
-* File deletion inside app
 * Action GIF on focus on file
 
 Dependencies (Raspberry PI has different dependencies T_T)
-* PotPlayer as media player : https://potplayer.daum.net/ - this can be hand modified by editing yamm.settings JSON file
+* PotPlayer as media player : https://potplayer.daum.net/ - this can be hand modified by editing $(USER)/.yamm_settings JSON file
 * moviepy library : pip install movipy
 * wxpython GUI library : pip install wxpython
-* pyunpack library : pip install pyunpack
-* patool library : pip install patool
 
 Problems
 * bugs!!
-* DB schema is not fixed yet - can be updated anytime
 * still slow
 
 Rasberry PI setup guide (only command line tried)
