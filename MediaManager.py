@@ -557,14 +557,12 @@ class MediaManager(wx.Frame):
                                     filename=self.leftPanel.file_filter)
 
         cpu_count = multiprocessing.cpu_count()
-        total = len(files)
         for mf in files:
+            self.files.append(mf)
             if self.view_contents == VIEW_FILES:
-                self.files.append(mf)
                 mf.view_index = self.files.index(mf)
             elif self.view_contents == VIEW_FAVORITES:
                 for fav in mf.favorites:
-                    self.files.append(mf)
                     self.favorites.append(fav)
                     fav.view_index = self.favorites.index(fav)
 
