@@ -280,7 +280,7 @@ class MediaFile:
     def add_favorite(self, time):
         for fav in self.favorites:
             if time == fav.time:
-                return
+                return None
 
         clean_thumbnails = False
         if not self.thumbnails:

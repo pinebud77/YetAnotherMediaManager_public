@@ -445,7 +445,6 @@ class MediaManager(wx.Frame):
             mf.view_index = self.files.index(mf)
         elif self.view_contents == VIEW_FAVORITES:
             for fav in mf.favorites:
-                self.files.append(mf)
                 self.favorites.append(fav)
                 fav.view_index = self.favorites.index(fav)
 
@@ -845,6 +844,8 @@ class MediaManager(wx.Frame):
             return
         thumb = mf.thumbnails[self.thumb_sel]
         fav = mf.add_favorite(thumb[0])
+        if fav is None:
+            return
         fav.jpg = thumb[1]
         if self.fileRadio.GetValue():
             self.select_file(mf, update_thumbs=False)
