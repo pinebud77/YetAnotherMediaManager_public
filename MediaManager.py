@@ -442,7 +442,6 @@ class MediaManager(wx.Frame):
 
     def add_mediafile(self, mf):
         if self.view_contents == VIEW_FILES:
-            self.files.append(mf)
             mf.view_index = self.files.index(mf)
         elif self.view_contents == VIEW_FAVORITES:
             for fav in mf.favorites:
@@ -450,25 +449,6 @@ class MediaManager(wx.Frame):
                 self.favorites.append(fav)
                 fav.view_index = self.favorites.index(fav)
 
-        self.add_mediaicon(mf)
-
-        if self.view_contents == VIEW_FILES:
-            item = wx.ListItem()
-            item.SetId(mf.view_index)
-            item.SetText(mf.filename)
-            item.SetImage(mf.imagelist_index)
-            item.SetData(mf.view_index)
-            self.filesList.InsertItem(item)
-        else:
-            for fav in mf.favorites:
-                item = wx.ListItem()
-                item.SetId(fav.view_index)
-                item.SetText(mf.filename)
-                item.SetImage(fav.imagelist_index)
-                item.SetData(fav.view_index)
-                self.filesList.InsertItem(item)
-
-    def add_mediaicon(self, mf):
         if self.view_contents == VIEW_FILES:
             if mf.imagelist_index is not None:
                 return
@@ -480,9 +460,13 @@ class MediaManager(wx.Frame):
                 image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
             image = self.get_scaled_image(self.image_list, image)
             bmp = wx.Bitmap(image)
-            self.add_icon_lock.acquire()
             mf.imagelist_index = self.image_list.Add(bmp)
-            self.add_icon_lock.release()
+            item = wx.ListItem()
+            item.SetId(mf.view_index)
+            item.SetText(mf.filename)
+            item.SetImage(mf.imagelist_index)
+            item.SetData(mf.view_index)
+            wx.CallAfter(self.filesList.InsertItem, item)
         else:
             for fav in mf.favorites:
                 if fav.imagelist_index is not None:
@@ -495,31 +479,17 @@ class MediaManager(wx.Frame):
                     image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
                 image = self.get_scaled_image(self.image_list, image)
                 bmp = wx.Bitmap(image)
-                self.add_icon_lock.acquire()
                 fav.imagelist_index = self.image_list.Add(bmp)
-                self.add_icon_lock.release()
+                item = wx.ListItem()
+                item.SetId(fav.view_index)
+                item.SetText(mf.filename)
+                item.SetImage(fav.imagelist_index)
+                item.SetData(fav.view_index)
+                wx.CallAfter(self.filesList.InsertItem, item)
 
     def mediaicon_thread_func(self, mf_list):
         for mf in mf_list:
-            self.add_mediaicon(mf)
-
-    def append_files(self, mf_list):
-        for file in mf_list:
-            if self.view_contents == VIEW_FILES:
-                item = wx.ListItem()
-                item.SetId(file.view_index)
-                item.SetText(file.filename)
-                item.SetImage(file.imagelist_index)
-                item.SetData(file.view_index)
-                self.filesList.InsertItem(item)
-            else:
-                for fav in file.favorites:
-                    item = wx.ListItem()
-                    item.SetId(fav.view_index)
-                    item.SetText(file.filename)
-                    item.SetImage(fav.imagelist_index)
-                    item.SetData(fav.view_index)
-                    self.filesList.InsertItem(item)
+            self.add_mediafile(mf)
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
@@ -554,64 +524,40 @@ class MediaManager(wx.Frame):
 
         if not self.catalog:
             return
-        files = self.catalog.filter(actors=self.leftPanel.actor_selected,
+
+        self.disable()
+        self.files = self.catalog.filter(actors=self.leftPanel.actor_selected,
                                     tags=self.leftPanel.tag_selected,
                                     filename=self.leftPanel.file_filter)
 
+        total = len(self.files)
         cpu_count = multiprocessing.cpu_count()
-        for mf in files:
-            self.files.append(mf)
-            if self.view_contents == VIEW_FILES:
-                mf.view_index = self.files.index(mf)
-            elif self.view_contents == VIEW_FAVORITES:
-                for fav in mf.favorites:
-                    self.favorites.append(fav)
-                    fav.view_index = self.favorites.index(fav)
-
-        need_regen = False
-        if self.view_contents == VIEW_FILES:
-            for mf in self.files:
-                if mf.imagelist_index is None:
-                    need_regen = True
-        else:
-            for fav in self.favorites:
-                if fav.imagelist_index is None:
-                    need_regen = True
-
         step = update_period // cpu_count
+        if not step:
+            step = 1
         update_period = step * cpu_count
         if not step:
             step = 1
         thread_list = []
-        in_thread_files = []
-        processed_files = []
-        for sstart in range(0, len(self.files), step):
+        for sstart in range(0, total, step):
             args = self.files[sstart:sstart+step]
-            if need_regen:
-                t = threading.Thread(target=self.mediaicon_thread_func, args=(args,))
-                t.start()
-                thread_list.append(t)
-            in_thread_files.extend(args)
+            t = threading.Thread(target=self.mediaicon_thread_func, args=(args,))
+            t.start()
+            thread_list.append(t)
 
-            if sstart % update_period == 0 or sstart + step >= len(self.files):
+            if sstart % update_period == 0 or sstart + step >= total:
                 self.filesList.Freeze()
-                self.append_files(processed_files)
-                self.statusbar.SetStatusText('files loaded (%d/%d)' % (sstart, len(self.files)))
+                wx.CallAfter(self.statusbar.SetStatusText, 'files loaded (%d/%d)' % (sstart, total))
                 self.filesList.Thaw()
                 wx.Yield()
-                if need_regen:
-                    for t in thread_list:
-                        t.join()
-                    thread_list = []
-                processed_files = in_thread_files
-                in_thread_files = []
-        if processed_files:
-            self.append_files(processed_files)
+                for t in thread_list:
+                    t.join()
+                thread_list = []
 
         self.OnSortChange(None)
         self.enable()
 
-        logging.debug('view loading finished')
+        wx.CallAfter(logging.debug, 'view loading finished')
 
     def OnDbTimer(self, e):
         logging.debug('OnDbTimer called')
@@ -628,7 +574,6 @@ class MediaManager(wx.Frame):
             for mf in files:
                 if not (mf in self.files):
                     self.add_mediafile(mf)
-                    logging.debug('file added to the view : %s' % mf)
 
             mf_i = 0
             while mf_i < len(self.files):
@@ -645,7 +590,6 @@ class MediaManager(wx.Frame):
                             self.filesList.SetItemData(idx, data - 1)
                     if mf in self.files_selected:
                         self.deselect_file(mf)
-                    logging.debug('file removed from view : %s' % mf)
                     del self.files[mf_i]
                     mf_i -= 1
                 mf_i += 1
@@ -755,9 +699,18 @@ class MediaManager(wx.Frame):
         if not update_thumbs:
             self.thumb_timer.Start(5, oneShot=True)
 
+    def sort_get_mf(self, item1, item2):
+        if self.view_contents == VIEW_FILES:
+            mf1 = self.files[item1]
+            mf2 = self.files[item2]
+        else:
+            mf1 = self.favorites[item1].mediafile
+            mf2 = self.favorites[item2].mediafile
+        return mf1, mf2
+
+
     def sort_filename(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if mf1.filename == mf2.filename:
             return 0
         elif mf1.filename < mf2.filename:
@@ -766,8 +719,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_time(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if mf1.time == mf2.time:
             return 0
         elif mf1.time < mf2.time:
@@ -776,8 +728,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_lastplay(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if (not mf1.lastplay) and mf2.lastplay:
             return -self.sort_positive
         if mf1.lastplay and (not mf2.lastplay):
@@ -792,8 +743,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_duration(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if (not mf1.duration) and mf2.duration:
             return -self.sort_positive
         if mf1.duration and not (mf2.duration):
@@ -808,8 +758,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_path(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if mf1.abspath == mf2.abspath:
             return 0
         elif mf1.abspath < mf2.abspath:
@@ -818,8 +767,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_size(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if (not mf1.size) and mf2.size:
             return -self.sort_positive
         if mf1.size and (not mf2.size):
@@ -834,8 +782,7 @@ class MediaManager(wx.Frame):
             return self.sort_positive
 
     def sort_resolution(self, item1, item2):
-        mf1 = self.files[item1]
-        mf2 = self.files[item2]
+        mf1, mf2 = self.sort_get_mf(item1, item2)
         if not (mf1.width and mf1.height):
             mf1_size = None
         if not (mf2.width and mf2.height):
