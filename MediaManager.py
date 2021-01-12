@@ -450,17 +450,16 @@ class MediaManager(wx.Frame):
                 fav.view_index = self.favorites.index(fav)
 
         if self.view_contents == VIEW_FILES:
-            if mf.imagelist_index is not None:
-                return
-            jpg_bytes = mf.get_coverjpg(read_db=False)
-            if jpg_bytes:
-                data_stream = io.BytesIO(jpg_bytes)
-                image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-            else:
-                image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
-            image = self.get_scaled_image(self.image_list, image)
-            bmp = wx.Bitmap(image)
-            mf.imagelist_index = self.image_list.Add(bmp)
+            if mf.imagelist_index is None:
+                jpg_bytes = mf.get_coverjpg(read_db=False)
+                if jpg_bytes:
+                    data_stream = io.BytesIO(jpg_bytes)
+                    image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                else:
+                    image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
+                image = self.get_scaled_image(self.image_list, image)
+                bmp = wx.Bitmap(image)
+                mf.imagelist_index = self.image_list.Add(bmp)
             item = wx.ListItem()
             item.SetId(mf.view_index)
             item.SetText(mf.filename)
@@ -469,17 +468,16 @@ class MediaManager(wx.Frame):
             wx.CallAfter(self.filesList.InsertItem, item)
         else:
             for fav in mf.favorites:
-                if fav.imagelist_index is not None:
-                    return
-                jpg_bytes = fav.jpg
-                if jpg_bytes:
-                    data_stream = io.BytesIO(jpg_bytes)
-                    image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
-                else:
-                    image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
-                image = self.get_scaled_image(self.image_list, image)
-                bmp = wx.Bitmap(image)
-                fav.imagelist_index = self.image_list.Add(bmp)
+                if fav.imagelist_index is None:
+                    jpg_bytes = fav.jpg
+                    if jpg_bytes:
+                        data_stream = io.BytesIO(jpg_bytes)
+                        image = wx.Image(data_stream, type=wx.BITMAP_TYPE_JPEG)
+                    else:
+                        image = wx.Image(DEF_THUMBNAIL_WIDTH, DEF_THUMBNAIL_HEIGHT)
+                    image = self.get_scaled_image(self.image_list, image)
+                    bmp = wx.Bitmap(image)
+                    fav.imagelist_index = self.image_list.Add(bmp)
                 item = wx.ListItem()
                 item.SetId(fav.view_index)
                 item.SetText(mf.filename)
