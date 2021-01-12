@@ -1074,7 +1074,7 @@ class MediaManager(wx.Frame):
         self.stop_sync()
         self.catalog.close_database()
         self.catalog = None
-        self.leftPanel.set_mm_window(None)
+        self.leftPanel.set_mm_window(self)
         for mf in self.files_selected:
             self.deselect_file(mf)
         self.update_view()

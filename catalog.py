@@ -503,6 +503,21 @@ class Catalog(list):
         self.tag_list.sort()
         return True
 
+    def del_actor(self, name):
+        if name not in self.actor_list:
+            return
+        for mf in self:
+            mf.del_actor(name)
+        self.actor_list.remove(name)
+        db_utils.del_actor(self.db_conn, name)
+
+    def del_tag(self, tag):
+        if tag not in self.tag_list:
+            return
+        for mf in self:
+            mf.del_tag(tag)
+        self.tag_list.remove(tag)
+
     def close_database(self):
         if self.db_conn:
             self.db_conn.close()

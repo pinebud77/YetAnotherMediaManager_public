@@ -27,11 +27,10 @@ class LeftPanel(wx.Panel):
         super(LeftPanel, self).__init__(*args, **kwargs)
 
         self.mm_window = None
+        self.catalog = None
 
         self.file_filter = ''
-        self.actor_list = []
         self.actor_selected = []
-        self.tag_list = []
         self.tag_selected = []
 
         self.InitUI()
@@ -67,6 +66,7 @@ class LeftPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnActorSelect, self.actorList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnActorSelect, self.actorList)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnActorEdit, self.actorList)
+        self.actorList.Bind(wx.EVT_KEY_DOWN, self.OnActorKeyDown)
         vbox.Add(self.actorList, 1, wx.EXPAND)
 
         self.tagList = wx.ListCtrl(self, size=(300, -1), style=wx.LC_LIST |
@@ -75,6 +75,7 @@ class LeftPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnTagSelect, self.tagList)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnTagSelect, self.tagList)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnTagEdit, self.tagList)
+        self.tagList.Bind(wx.EVT_KEY_DOWN, self.OnTagKeyDown)
         vbox.Add(self.tagList, 1, wx.EXPAND)
 
         self.update_timer = wx.Timer(self, 0)
@@ -88,23 +89,41 @@ class LeftPanel(wx.Panel):
         self.SetSizer(vbox)
         self.SetAutoLayout(True)
 
+    def OnActorKeyDown(self, e):
+        if e.GetKeyCode() != wx.WXK_DELETE:
+            return
+        for name in self.actor_selected:
+            self.catalog.del_actor(name)
+        self.actor_selected = []
+        self.update_lists()
+        self.update_timer.Start(10)
+
+    def OnTagKeyDown(self, e):
+        if e.GetKeyCode() != wx.WXK_DELETE:
+            return
+        for tag in self.tag_selected:
+            self.catalog.del_tag(tag)
+        self.tag_selected = []
+        self.update_lists()
+        self.update_timer.Start(10)
+
     def OnActorEdit(self, e):
-        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
-                                                  e.GetLabel())
+        res = self.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
+                                        e.GetLabel())
         if not res:
             e.Veto()
             return
         self.update_lists()
-        self.mm_window.rightPanel.set_mediafiles((self.mm_window.rightPanel.files_selected))
+        self.mm_window.rightPanel.update_view()
 
     def OnTagEdit(self, e):
-        res = self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
-                                                e.GetLabel())
+        res = self.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
+                                      e.GetLabel())
         if not res:
             e.Veto()
             return
         self.update_lists()
-        self.mm_window.rightPanel.set_mediafiles((self.mm_window.rightPanel.files_selected))
+        self.mm_window.rightPanel.updatee_view()
 
     def OnFileFilter(self, e):
         self.file_filter = self.fileText.GetValue()
@@ -160,59 +179,46 @@ class LeftPanel(wx.Panel):
         self.mm_window.update_view()
 
     def update_lists(self):
-        self.actor_list.sort()
         self.actorList.DeleteAllItems()
-        for name in self.actor_list:
+        self.tagList.DeleteAllItems()
+
+        if self.catalog is None:
+            return
+
+        actor_list = sorted(self.catalog.actor_list)
+        for name in actor_list:
             idx = self.actorList.Append((name,))
             if name in self.actor_selected:
                 self.actorList.Select(idx)
-
-        self.tag_list.sort()
-        self.tagList.DeleteAllItems()
-        for tag in self.tag_list:
+        tag_list = sorted(self.catalog.tag_list)
+        for tag in tag_list:
             idx = self.tagList.Append((tag,))
             if tag in self.tag_selected:
                 self.tagList.Select(idx)
 
-    def set_mm_window(self, mm):
-        self.mm_window = mm
+    def update_view(self):
+        self.update_lists()
 
-        self.actor_list = []
-        self.tag_list = []
+    def set_mm_window(self, mm=None):
+        self.mm_window = mm
+        if mm is not None:
+            self.catalog = mm.catalog
+        else:
+            self.catalog = None
+
         if not mm or not mm.catalog:
             self.update_lists()
-
             self.clearButton.Disable()
             self.fileText.Disable()
             self.actorList.Disable()
             self.tagList.Disable()
             return
 
-        for actor in mm.catalog.actor_list:
-            self.actor_list.append(actor)
-        for tag in mm.catalog.tag_list:
-            self.tag_list.append(tag)
-
-        self.update_lists()
-
+        self.update_view()
         self.clearButton.Enable()
         self.fileText.Enable()
         self.actorList.Enable()
         self.tagList.Enable()
-
-    def add_actor(self, actor):
-        if actor in self.actor_list:
-            return
-        self.actor_list.append(actor)
-        self.actor_list.sort()
-        self.update_lists()
-
-    def add_tag(self, tag):
-        if tag in self.tag_list:
-            return
-        self.tag_list.append(tag)
-        self.tag_list.sort()
-        self.update_lists()
 
 
 class RightPanel(wx.Panel):
@@ -220,12 +226,8 @@ class RightPanel(wx.Panel):
         super(RightPanel, self).__init__(*args, **kwargs)
 
         self.mm_window = None
+        self.catalog = None
         self.files_selected = []
-
-        self.actor_list = []
-        self.actor_selected = []
-        self.tag_list = []
-        self.tag_selected = []
 
         self.InitUI()
 
@@ -325,10 +327,6 @@ class RightPanel(wx.Panel):
         name = self.actorList.GetItemText(sel, 1)
 
         for mf in self.files_selected:
-            if not (name in mf.actor_list):
-                return
-
-        for mf in self.files_selected:
             mf.del_actor(name)
 
     def OnActorAdd(self, e):
@@ -336,41 +334,44 @@ class RightPanel(wx.Panel):
         if not name:
             return
 
-        if not (name in self.actor_list):
-            self.actor_list.append(name)
-            self.mm_window.leftPanel.add_actor(name)
-        if not (name in self.actor_selected):
-            self.actor_selected.append(name)
-            for mf in self.files_selected:
-                mf.add_actor(name)
-
+        for mf in self.files_selected:
+            mf.add_actor(name)
+        self.mm_window.leftPanel.update_view()
         self.update_actor()
 
     def OnActorEdit(self, e):
-        res = self.mm_window.catalog.modify_actor(self.actorList.GetItemText(e.GetIndex()),
-                                                  e.GetLabel())
-        if not res:
-            e.Veto()
-            return
+        old_name = self.actorList.GetItemText(e.GetIndex(), 1)
+        new_name = e.GetLabel()
+        self.catalog.add_actor(new_name)
+        for mf in self.files_selected:
+            mf.modify_actor(old_name, new_name)
         self.update_actor()
-        self.mm_window.leftPanel.set_mm_window(self.mm_window)
+        self.mm_window.leftPanel.update_view()
 
     def OnTagEdit(self, e):
-        res = self.mm_window.catalog.modify_tag(self.tagList.GetItemText(e.GetIndex()),
-                                                e.GetLabel())
-        if not res:
-            e.Veto()
-            return
+        old_tag = self.tagList.GetItemText(e.GetIndex(), 1)
+        new_tag = e.GetLabel()
+        self.catalog.add_tag(new_tag)
+        for mf in self.files_selected:
+            mf.modify_tag(old_tag, new_tag)
         self.update_tag()
-        self.mm_window.leftPanel.set_mm_window(self.mm_window)
+        self.mm_window.leftPanel.update_view()
 
     def update_actor(self):
-        self.actor_list.sort()
-        self.actor_selected.sort()
+        if not self.catalog:
+            self.actorList.DeleteAllItems()
+            return
+
+        actor_list = sorted(self.catalog.actor_list)
         self.actorList.DeleteAllItems()
-        for actor in self.actor_list:
+        for actor in actor_list:
             idx = self.actorList.Append(('', actor,))
-            if actor in self.actor_selected:
+            select = True
+            for mf in self.files_selected:
+                if actor not in mf.actor_list:
+                    select = False
+                    break
+            if select:
                 self.actorList.CheckItem(idx, check=True)
             else:
                 self.actorList.CheckItem(idx, check=False)
@@ -398,23 +399,26 @@ class RightPanel(wx.Panel):
         if not tag:
             return
 
-        if not (tag in self.tag_list):
-            self.tag_list.append(tag)
-            self.mm_window.leftPanel.add_tag(tag)
-        if not (tag in self.tag_selected):
-            self.tag_selected.append(tag)
-            for mf in self.files_selected:
-                mf.add_tag(tag)
+        for mf in self.files_selected:
+            mf.add_tag(tag)
 
+        self.mm_window.leftPanel.update_view()
         self.update_tag()
 
     def update_tag(self):
-        self.tag_list.sort()
-        self.tag_selected.sort()
         self.tagList.DeleteAllItems()
-        for tag in self.tag_list:
+        if not self.catalog:
+            return
+
+        tag_list = sorted(self.catalog.tag_list)
+        for tag in tag_list:
             idx = self.tagList.Append(('', tag,))
-            if tag in self.tag_selected:
+            select = True
+            for mf in self.files_selected:
+                if tag not in mf.tag_list:
+                    select = False
+                    break
+            if select:
                 self.tagList.CheckItem(idx, check=True)
             else:
                 self.tagList.CheckItem(idx, check=False)
@@ -470,14 +474,15 @@ class RightPanel(wx.Panel):
         else:
             self.propertyList.SetItem(5, 1, '')
 
-    def set_mediafiles(self, mf_list):
+    def update_view(self):
+        self.update_actor()
+        self.update_tag()
+        self.set_property()
+
+    def set_mediafiles(self, mf_list=[]):
         self.files_selected = mf_list
 
-        if not self.files_selected:
-            self.actor_list = []
-            self.actor_selected = []
-            self.tag_list = []
-            self.tag_selected = []
+        if not mf_list:
             self.update_actor()
             self.update_tag()
             self.set_property()
@@ -487,41 +492,14 @@ class RightPanel(wx.Panel):
             self.tagList.Disable()
             return
 
-        catalog = self.files_selected[0].catalog
-
-        self.actor_list = []
-        for actor in catalog.actor_list:
-            self.actor_list.append(actor)
-        self.actor_selected = []
-        for sactor in self.actor_list:
-            all_found = True
-            for mf in self.files_selected:
-                if not (sactor in mf.actor_list):
-                    all_found = False
-                    break
-            if all_found:
-                self.actor_selected.append(sactor)
-
-        self.tag_list = []
-        for tag in catalog.tag_list:
-            self.tag_list.append(tag)
-        self.tag_selected = []
-        for stag in self.tag_list:
-            all_found = True
-            for mf in self.files_selected:
-                if not (stag in mf.tag_list):
-                    all_found = False
-                    break
-            if all_found:
-                self.tag_selected.append(stag)
-        self.update_actor()
-        self.update_tag()
-        self.set_property()
-
+        self.catalog = self.files_selected[0].catalog
+        self.update_view()
         self.actorText.Enable()
         self.actorList.Enable()
         self.tagText.Enable()
         self.tagList.Enable()
+
+
 
 class CatalogDialog(wx.Dialog):
     def __init__(self, *args, **kwargs):
