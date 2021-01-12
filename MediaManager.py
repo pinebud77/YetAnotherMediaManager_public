@@ -545,7 +545,7 @@ class MediaManager(wx.Frame):
 
             if sstart % update_period == 0 or sstart + step >= total:
                 self.filesList.Freeze()
-                wx.CallAfter(self.statusbar.SetStatusText, 'files loaded (%d/%d)' % (sstart, total))
+                wx.CallAfter(self.statusbar.SetStatusText, 'files loaded (%d/%d)' % (sstart+step, total))
                 self.filesList.Thaw()
                 wx.Yield()
                 for t in thread_list:
