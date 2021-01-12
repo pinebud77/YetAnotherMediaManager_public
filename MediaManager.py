@@ -534,6 +534,8 @@ class MediaManager(wx.Frame):
             self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
             for mf in self.catalog:
                 mf.imagelist_index = None
+                for fav in mf.favorites:
+                    fav.imagelist_index = None
             update_period = 50
 
         if update_period is None:
