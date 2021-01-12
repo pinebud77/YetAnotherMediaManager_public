@@ -453,16 +453,20 @@ class MediaManager(wx.Frame):
         self.add_mediaicon(mf)
 
         if self.view_contents == VIEW_FILES:
-            list_idx = self.filesList.InsertItem(mf.view_index,
-                                                 mf.filename,
-                                                 mf.imagelist_index)
-            self.filesList.SetItemData(list_idx, mf.view_index)
+            item = wx.ListItem()
+            item.SetId(mf.view_index)
+            item.SetText(mf.filename)
+            item.SetImage(mf.imagelist_index)
+            item.SetData(mf.view_index)
+            self.filesList.InsertItem(item)
         else:
             for fav in mf.favorites:
-                list_idx = self.filesList.InsertItem(fav.view_index,
-                                                     mf.filename,
-                                                     fav.imagelist_index)
-                self.filesList.SetItemData(list_idx, fav.view_index)
+                item = wx.ListItem()
+                item.SetId(fav.view_index)
+                item.SetText(mf.filename)
+                item.SetImage(fav.iamgelist_index)
+                item.SetData(fav.view_index)
+                self.filesList.InsertItem(item)
 
     def add_mediaicon(self, mf):
         if self.view_contents == VIEW_FILES:
@@ -502,16 +506,19 @@ class MediaManager(wx.Frame):
     def append_files(self, mf_list):
         for file in mf_list:
             if self.view_contents == VIEW_FILES:
-                list_idx = self.filesList.InsertItem(file.view_index,
-                                                     file.filename,
-                                                     file.imagelist_index)
-                self.filesList.SetItemData(list_idx, file.view_index)
+                item = wx.ListItem()
+                item.SetId(file.view_index)
+                item.SetText(file.filename)
+                item.SetImage(file.imagelist_index)
+                item.SetData(file.view_index)
+                self.filesList.InsertItem(item)
             else:
                 for fav in file.favorites:
-                    list_idx = self.filesList.InsertItem(fav.view_index,
-                                                         file.filename,
-                                                         fav.imagelist_index)
-                    self.filesList.SetItemData(list_idx, fav.view_index)
+                    item = wx.ListItem()
+                    item.SetId(fav.view_index)
+                    item.SetText(file.filename)
+                    item.SetImage(fav.iamgelist_index)
+                    item.SetData(fav.view_index)
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
