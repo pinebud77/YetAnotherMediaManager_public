@@ -234,16 +234,16 @@ class RightPanel(wx.Panel):
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        self.propertyList = wx.ListCtrl(self, size=(300, 145), style=wx.LC_REPORT |
+        self.propertyList = wx.ListCtrl(self, size=(290, 145), style=wx.LC_REPORT |
                                                                      wx.BORDER_SUNKEN |
                                                                      wx.LC_HRULES |
                                                                      wx.LC_VRULES)
-        self.propertyList.InsertColumn(0, 'Property', width=100)
-        self.propertyList.InsertColumn(1, 'Value', width=195)
+        self.propertyList.InsertColumn(0, 'Property', width=70)
+        self.propertyList.InsertColumn(1, 'Value', width=215)
 
         self.propertyList.InsertItem(0, 'Filename')
         self.propertyList.InsertItem(1, 'Path')
-        self.propertyList.InsertItem(2, 'Stars')
+        self.propertyList.InsertItem(2, 'Resolution')
         self.propertyList.InsertItem(3, 'Size')
         self.propertyList.InsertItem(4, 'Duration')
         self.propertyList.InsertItem(5, 'LastPlayed')
@@ -266,7 +266,7 @@ class RightPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnActorAdd, fileSetBtn)
         ihbox.Add(fileSetBtn, 0, wx.EXPAND)
         ivbox.Add(ihbox)
-        self.actorList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
+        self.actorList = wx.ListCtrl(self, size=(145, -1), style=wx.LC_REPORT |
                                                                  wx.LC_NO_HEADER |
                                                                  wx.LC_SINGLE_SEL |
                                                                  wx.LC_EDIT_LABELS)
@@ -292,7 +292,7 @@ class RightPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnTagAdd, fileSetBtn)
         ihbox.Add(fileSetBtn, 0, wx.EXPAND)
         ivbox.Add(ihbox)
-        self.tagList = wx.ListCtrl(self, size=(150, -1), style=wx.LC_REPORT |
+        self.tagList = wx.ListCtrl(self, size=(145, -1), style=wx.LC_REPORT |
                                                                wx.LC_NO_HEADER |
                                                                wx.LC_SINGLE_SEL |
                                                                wx.LC_EDIT_LABELS)
@@ -434,7 +434,7 @@ class RightPanel(wx.Panel):
                 self.propertyList.SetItem(0, 1, 'Multi-Files')
             self.propertyList.InsertItem(1, 'Path')
             self.propertyList.SetItem(1, 1, '')
-            self.propertyList.InsertItem(2, 'Stars')
+            self.propertyList.InsertItem(2, 'Resolution')
             self.propertyList.SetItem(2, 1, '')
             self.propertyList.InsertItem(3, 'Size')
             self.propertyList.SetItem(3, 1, '')
@@ -449,7 +449,7 @@ class RightPanel(wx.Panel):
         self.propertyList.InsertItem(0, 'Filename')
         self.propertyList.SetItem(0, 1, media_file.filename)
         self.propertyList.InsertItem(1, 'Path')
-        self.propertyList.SetItem(1, 1, media_file.abspath)
+        self.propertyList.SetItem(1, 1, media_file.reldir)
         self.propertyList.InsertItem(2, 'Resolution')
         if media_file.width and media_file.height:
             self.propertyList.SetItem(2, 1, '%d x %d' % (media_file.width, media_file.height))

@@ -224,7 +224,7 @@ class MediaManager(wx.Frame):
         filesList.SetDoubleBuffered(True)
         self.filesList = filesList
 
-        self.rightPanel = RightPanel(self, size=(300, -1))
+        self.rightPanel = RightPanel(self, size=(290, -1))
         self.rightPanel.mm_window = self
         hbox.Add(self.rightPanel, 0, flag=wx.EXPAND)
         vbox.Add(hbox, 1, flag=wx.EXPAND)
