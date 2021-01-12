@@ -33,6 +33,12 @@ class LeftPanel(wx.Panel):
         self.actor_selected = []
         self.tag_selected = []
 
+        self.clearButton = None
+        self.fileText = None
+        self.actorList = None
+        self.tagList = None
+        self.update_timer = None
+
         self.InitUI()
 
     def InitUI(self):
@@ -228,6 +234,12 @@ class RightPanel(wx.Panel):
         self.mm_window = None
         self.catalog = None
         self.files_selected = []
+
+        self.propertyList = None
+        self.actorText = None
+        self.actorList = None
+        self.tagText = None
+        self.tagList = None
 
         self.InitUI()
 
@@ -479,7 +491,7 @@ class RightPanel(wx.Panel):
         self.update_tag()
         self.set_property()
 
-    def set_mediafiles(self, mf_list=[]):
+    def set_mediafiles(self, mf_list=()):
         self.files_selected = mf_list
 
         if not mf_list:
@@ -507,6 +519,10 @@ class CatalogDialog(wx.Dialog):
 
         self.catPath = None
         self.topdir_list = []
+
+        self.catPath = None
+        self.topList = None
+        self.okButton = None
 
         self.InitUI()
 

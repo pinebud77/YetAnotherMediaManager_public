@@ -72,6 +72,22 @@ class MediaManager(wx.Frame):
         self.file_to_open = None
         self.add_icon_lock = threading.Lock()
 
+        self.leftPanel = None
+        self.rightPanel = None
+        self.favRadio = None
+        self.fileRadio = None
+        self.sortChoice = None
+        self.ascendChoice = None
+        self.filesList = None
+        self.image_list = None
+        self.thumbsList = None
+        self.thumbs_list = None
+        self.db_timer = None
+        self.open_timer = None
+        self.thumb_timer = None
+        self.thumbRightMenu = None
+        self.statusbar = None
+
         self.InitUI()
 
     def InitUI(self):
@@ -251,7 +267,6 @@ class MediaManager(wx.Frame):
         self.thumb_timer = wx.Timer(self, 2)
         self.Bind(wx.EVT_TIMER, self.OnThumbTimer, self.thumb_timer)
 
-
         self.thumbRightMenu = wx.Menu()
         menuFavorite = self.thumbRightMenu.Append(wx.ID_ANY, 'Add to Favorites')
         menuCover = self.thumbRightMenu.Append(wx.ID_ANY, 'Set as Cover Image')
@@ -281,13 +296,16 @@ class MediaManager(wx.Frame):
         self.Centre()
 
         logging.info('Yet Another Media Manager v%d.%d' % (VERSION_MAJOR, VERSION_MINOR))
+        self.check_version()
+
+    def check_version(self):
         r = requests.get(RELEASE_URL + '/latest')
         if r.url != '%s/tag/%d.%d' % (RELEASE_URL, VERSION_MAJOR, VERSION_MINOR):
             try:
                 wx.MessageBox('Update found at the github. Web page openned for the update.', 'update', wx.OK | wx.ICON_WARNING)
                 webbrowser.open(RELEASE_URL)
-            except:
-                pass
+            except Exception as e:
+                logging.error(e)
 
     def disable(self):
         self.leftPanel.Disable()
@@ -781,16 +799,16 @@ class MediaManager(wx.Frame):
         mf1, mf2 = self.sort_get_mf(item1, item2)
         if not (mf1.width and mf1.height):
             mf1_size = None
-        if not (mf2.width and mf2.height):
-            mf1_size = None
-        if mf1.width > mf1.height:
+        elif mf1.width > mf1.height:
             mf1_size = mf1.width
         else:
-            mf1_size = mf1_height
-        if mf2.width > mf2.height:
+            mf1_size = mf1.height
+        if not (mf2.width and mf2.height):
+            mf1_size = None
+        elif mf2.width > mf2.height:
             mf2_size = mf2.width
         else:
-            mf2_size = mf2_height
+            mf2_size = mf2.height
         if (not mf1_size) and mf2_size:
             return -self.sort_positive
         if mf1_size and (not mf2_size):
