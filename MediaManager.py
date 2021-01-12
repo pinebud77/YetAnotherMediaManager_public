@@ -464,7 +464,7 @@ class MediaManager(wx.Frame):
                 item = wx.ListItem()
                 item.SetId(fav.view_index)
                 item.SetText(mf.filename)
-                item.SetImage(fav.iamgelist_index)
+                item.SetImage(fav.imagelist_index)
                 item.SetData(fav.view_index)
                 self.filesList.InsertItem(item)
 
@@ -517,8 +517,9 @@ class MediaManager(wx.Frame):
                     item = wx.ListItem()
                     item.SetId(fav.view_index)
                     item.SetText(file.filename)
-                    item.SetImage(fav.iamgelist_index)
+                    item.SetImage(fav.imagelist_index)
                     item.SetData(fav.view_index)
+                    self.filesList.InsertItem(item)
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
@@ -556,11 +557,8 @@ class MediaManager(wx.Frame):
                                     filename=self.leftPanel.file_filter)
 
         cpu_count = multiprocessing.cpu_count()
-        count = 0
         total = len(files)
         for mf in files:
-            count += 1
-
             if self.view_contents == VIEW_FILES:
                 self.files.append(mf)
                 mf.view_index = self.files.index(mf)
@@ -588,17 +586,17 @@ class MediaManager(wx.Frame):
         in_thread_files = []
         processed_files = []
         for sstart in range(0, len(self.files), step):
-            args = self.files[sstart:sstart + step]
+            args = self.files[sstart:sstart+step]
             if need_regen:
                 t = threading.Thread(target=self.mediaicon_thread_func, args=(args,))
                 t.start()
                 thread_list.append(t)
             in_thread_files.extend(args)
 
-            if sstart % update_period == 0 or sstart + step > len(self.files):
+            if sstart % update_period == 0 or sstart + step >= len(self.files):
                 self.filesList.Freeze()
                 self.append_files(processed_files)
-                wx.CallAfter(self.statusbar.SetStatusText, 'files loaded (%d/%d)' % (sstart, len(self.files)))
+                self.statusbar.SetStatusText('files loaded (%d/%d)' % (sstart, len(self.files)))
                 self.filesList.Thaw()
                 wx.Yield()
                 if need_regen:
@@ -609,8 +607,6 @@ class MediaManager(wx.Frame):
                 in_thread_files = []
         if processed_files:
             self.append_files(processed_files)
-
-        wx.CallAfter(self.statusbar.SetStatusText, 'files loaded (%d/%d)' % (count, total))
 
         self.OnSortChange(None)
         self.enable()
@@ -1125,7 +1121,7 @@ class MediaManager(wx.Frame):
     def OnSyncStop(self, e):
         self.stop_sync()
 
-    def stop_sync(self, timeout=90):
+    def stop_sync(self, timeout=240):
         if not self.cat_thread or not self.thread_catalog:
             return
         self.statusbar.SetStatusText('Trying to stop sync')
@@ -1146,13 +1142,14 @@ class MediaManager(wx.Frame):
 
     def OnClose(self, e):
         logging.info('closing application')
+        if self.catalog is not None:
+            self.stop_sync()
+            self.catalog.close_database()
+            self.catalog = None
+
         settings.DEF_VIEW_CONTENTS = self.view_contents
         settings.DEF_VIEW_TYPE = self.view_type
         settings.DEF_SORT_METHOD = self.sort_method
         settings.DEF_SORT_ASCEND = self.sort_ascend
 
-        if self.catalog:
-            self.catalog.kill_thread = True
-        if self.cat_thread:
-            self.stop_sync(0)
         self.Destroy()
