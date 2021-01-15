@@ -508,8 +508,7 @@ class MediaManager(wx.Frame):
 
     def OnViewChange(self, vtype=None, update_period=None):
         if self.view_type != vtype and vtype is not None:
-            if vtype is not None:
-                self.view_type = vtype
+            self.view_type = vtype
             if self.view_type == SMALL_THUMBNAILS:
                 self.image_list = wx.ImageList(DEF_SMALL_RESOLUTION[0], DEF_SMALL_RESOLUTION[1])
             elif self.view_type == MEDIUM_THUMBNAILS:
