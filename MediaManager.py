@@ -839,9 +839,7 @@ class MediaManager(wx.Frame):
             return
         logging.info('cover selected for %s' % mf)
         mf.set_cover_id(self.thumb_sel)
-        for mf_i in range(len(self.files)):
-            if self.files[mf_i] == mf:
-                break
+
         jpg_bytes = mf.get_coverjpg()
         if jpg_bytes:
             data_stream = io.BytesIO(jpg_bytes)
@@ -850,7 +848,7 @@ class MediaManager(wx.Frame):
             image = wx.Image(360, 203)
         image = self.get_scaled_image(self.image_list, image)
         bmp = wx.Bitmap(image)
-        self.image_list.Replace(mf_i, bmp)
+        self.image_list.Replace(mf.imagelist_index, bmp)
         self.filesList.SetImageList(self.image_list, wx.IMAGE_LIST_NORMAL)
 
     def OnFavorite(self, e):
